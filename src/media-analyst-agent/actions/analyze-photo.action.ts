@@ -15,7 +15,14 @@ export interface AnalysisResult {
   contextualData: {
     weather?: any;
     news?: any;
-    location?: string;
+    location?: {
+      coordinates: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      landmarks?: string[];
+    };
   };
 }
 
@@ -48,6 +55,16 @@ export class AnalyzePhotoAction implements Action {
           ? { lat: photoData.metadata.latitude, lng: photoData.metadata.longitude }
           : undefined);
 
+      // Get location details if coordinates are available
+      let locationDetails = null;
+      if (coordinates) {
+        const locationProvider = runtime.providers.find(p => (p as any).name === 'LOCATION');
+        locationDetails = await locationProvider?.get(runtime, {
+          ...message,
+          content: { ...message.content, location: coordinates }
+        });
+      }
+
       // Comprehensive image analysis using all available metadata
       const analysis = {
         timestamp: photoData.timestamp,
@@ -70,7 +87,14 @@ export class AnalyzePhotoAction implements Action {
         analysis: JSON.stringify(analysis),
         authenticity: true, // This should be verified using EigenLayer-backed AVS tools
         contextualData: {
-          location: coordinates ? `${coordinates.lat}, ${coordinates.lng}` : undefined
+          location: coordinates ? {
+            coordinates: `${coordinates.lat}, ${coordinates.lng}`,
+            address: locationDetails?.address,
+            city: locationDetails?.city,
+            state: locationDetails?.state,
+            country: locationDetails?.country,
+            landmarks: locationDetails?.landmarks
+          } : undefined
         }
       };
     } catch (error) {

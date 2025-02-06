@@ -3,6 +3,7 @@ import { AnalyzePhotoAction } from './actions/analyze-photo.action.js';
 import { PhotoEvaluator } from './evaluators/photo.evaluator.js';
 import { AuthenticityEvaluator } from './evaluators/authenticity.evaluator.js';
 import { MetadataProvider } from './providers/metadata.provider.js';
+import { LocationProvider } from './providers/location.provider.js';
 
 export class MediaAnalystAgent extends AgentRuntime {
   private readonly LOCAL_USER_ID = stringToUuid('local-user');
@@ -23,6 +24,7 @@ export class MediaAnalystAgent extends AgentRuntime {
       ],
       providers: [
         new MetadataProvider(),
+        new LocationProvider(),
       ],
       actions: [new AnalyzePhotoAction()],
       services: [],
@@ -54,7 +56,14 @@ export class MediaAnalystAgent extends AgentRuntime {
     contextualData: {
       weather?: any;
       news?: any;
-      location?: string;
+      location?: {
+        coordinates: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        country?: string;
+        landmarks?: string[];
+      };
     };
   }> {
     try {
