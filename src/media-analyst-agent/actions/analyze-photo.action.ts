@@ -58,9 +58,11 @@ export class AnalyzePhotoAction implements Action {
       // Get location details if coordinates are available
       let locationDetails = null;
       let weatherData = null;
+      let newsData = null;
       if (coordinates) {
         const locationProvider = runtime.providers.find(p => (p as any).name === 'LOCATION');
         const weatherProvider = runtime.providers.find(p => (p as any).name === 'WEATHER');
+        const newsProvider = runtime.providers.find(p => (p as any).name === 'NEWS');
         
         locationDetails = await locationProvider?.get(runtime, {
           ...message,
@@ -72,6 +74,16 @@ export class AnalyzePhotoAction implements Action {
           ...message,
           content: { 
             ...message.content, 
+            location: coordinates,
+            timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp
+          }
+        });
+
+        // Get news articles from around the time and location of the photo
+        newsData = await newsProvider?.get(runtime, {
+          ...message,
+          content: {
+            ...message.content,
             location: coordinates,
             timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp
           }
@@ -118,7 +130,14 @@ export class AnalyzePhotoAction implements Action {
             precipitation: weatherData.rain?.['1h'] || 0,
             dataType: weatherData.timestamp ? 'historical' : 'current',
             weatherTime: weatherData.timestamp ? weatherData.timestamp : new Date(weatherData.dt * 1000).toISOString()
-          } : undefined
+          } : undefined,
+          news: newsData ? newsData.map(article => ({
+            title: article.title,
+            description: article.description,
+            source: article.source.name,
+            publishedAt: article.publishedAt,
+            url: article.url
+          })) : undefined
         }
       };
     } catch (error) {
