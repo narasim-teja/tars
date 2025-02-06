@@ -4,6 +4,7 @@ import { PhotoEvaluator } from './evaluators/photo.evaluator.js';
 import { AuthenticityEvaluator } from './evaluators/authenticity.evaluator.js';
 import { MetadataProvider } from './providers/metadata.provider.js';
 import { LocationProvider } from './providers/location.provider.js';
+import { WeatherProvider } from './providers/weather.provider.js';
 
 export class MediaAnalystAgent extends AgentRuntime {
   private readonly LOCAL_USER_ID = stringToUuid('local-user');
@@ -25,6 +26,7 @@ export class MediaAnalystAgent extends AgentRuntime {
       providers: [
         new MetadataProvider(),
         new LocationProvider(),
+        new WeatherProvider(),
       ],
       actions: [new AnalyzePhotoAction()],
       services: [],

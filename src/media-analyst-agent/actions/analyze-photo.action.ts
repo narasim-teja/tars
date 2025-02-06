@@ -57,11 +57,24 @@ export class AnalyzePhotoAction implements Action {
 
       // Get location details if coordinates are available
       let locationDetails = null;
+      let weatherData = null;
       if (coordinates) {
         const locationProvider = runtime.providers.find(p => (p as any).name === 'LOCATION');
+        const weatherProvider = runtime.providers.find(p => (p as any).name === 'WEATHER');
+        
         locationDetails = await locationProvider?.get(runtime, {
           ...message,
           content: { ...message.content, location: coordinates }
+        });
+
+        // Pass both location and timestamp for historical weather data
+        weatherData = await weatherProvider?.get(runtime, {
+          ...message,
+          content: { 
+            ...message.content, 
+            location: coordinates,
+            timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp
+          }
         });
       }
 
@@ -94,6 +107,17 @@ export class AnalyzePhotoAction implements Action {
             state: locationDetails?.state,
             country: locationDetails?.country,
             landmarks: locationDetails?.landmarks
+          } : undefined,
+          weather: weatherData ? {
+            temperature: weatherData.main.temp,
+            conditions: weatherData.weather[0].main,
+            description: weatherData.weather[0].description,
+            humidity: weatherData.main.humidity,
+            windSpeed: weatherData.wind.speed,
+            visibility: weatherData.visibility,
+            precipitation: weatherData.rain?.['1h'] || 0,
+            dataType: weatherData.timestamp ? 'historical' : 'current',
+            weatherTime: weatherData.timestamp ? weatherData.timestamp : new Date(weatherData.dt * 1000).toISOString()
           } : undefined
         }
       };
