@@ -27,6 +27,8 @@
     "@tavily/core": "0.0.2",
     "amqplib": "0.10.5",
     "better-sqlite3": "11.5.0",
+    "eigenlayer-contracts": "^1.0.4",
+    "ethers": "^6.13.5",
     "exifr": "^7.1.3",
     "fs": "0.0.1-security",
     "heic-convert": "^2.1.0",

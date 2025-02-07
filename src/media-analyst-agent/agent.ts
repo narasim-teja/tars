@@ -2,6 +2,7 @@ import { AgentRuntime, elizaLogger, type Character, stringToUuid } from '@elizao
 import { AnalyzePhotoAction } from './actions/analyze-photo.action.js';
 import { PhotoEvaluator } from './evaluators/photo.evaluator.js';
 import { AuthenticityEvaluator } from './evaluators/authenticity.evaluator.js';
+import { EigenLayerAVSEvaluator } from './evaluators/eigenlayer-avs.evaluator.js';
 import { MetadataProvider } from './providers/metadata.provider.js';
 import { LocationProvider } from './providers/location.provider.js';
 import { WeatherProvider } from './providers/weather.provider.js';
@@ -22,7 +23,8 @@ export class MediaAnalystAgent extends AgentRuntime {
       modelProvider: config.character.modelProvider,
       evaluators: [
         new PhotoEvaluator(),
-        new AuthenticityEvaluator()
+        new AuthenticityEvaluator(),
+        new EigenLayerAVSEvaluator(),
       ],
       providers: [
         new MetadataProvider(),
