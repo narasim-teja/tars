@@ -1,0 +1,3 @@
+[submodule "image-verification-avs/lib/forge-std"]
+	path = image-verification-avs/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
