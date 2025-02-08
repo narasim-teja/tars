@@ -8,7 +8,11 @@
     "start": "tsc && node --loader ts-node/esm src/index.ts",
     "clean": "./scripts/clean.sh",
     "start:service:all": "pm2 start pnpm --name=\"all\" --restart-delay=3000 --max-restarts=10 -- run start:all",
-    "stop:service:all": "pm2 stop all"
+    "stop:service:all": "pm2 stop all",
+    "start:anvil": "anvil",
+    "start:anvil-quick": "anvil --block-time 0.01",
+    "deploy:avs": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
+    "deploy:avs-debug": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug"
   },
   "dependencies": {
     "@elizaos/adapter-postgres": "0.1.9",

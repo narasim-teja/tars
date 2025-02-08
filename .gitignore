@@ -1,4 +1,3 @@
-
 dist
 !index.ts
 !character.ts
@@ -9,3 +8,20 @@ dist/
 db.sqlite
 .idea
 .tee-cloud
+
+# Foundry
+src/avs/contracts/cache/
+src/avs/contracts/out/
+src/avs/contracts/broadcast/
+
+# Anvil
+anvil/
+
+# Build artifacts
+build/
+*.log
+
+# IDE
+.vscode/
+*.swp
+*.swo
