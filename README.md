@@ -1,94 +1,158 @@
-# Eliza
+# TARS - AI Agent for Social Impact & Commerce
 
-## Edit the character files
+TARS is an AI agent that works with Meta Ray-Ban smart glasses to capture and analyze real-world experiences, create social impact initiatives, and facilitate commerce through crypto payments. The agent processes photos and videos from the glasses to identify social causes, create fundraising DAOs, and handle e-commerce transactions.
 
-Open `src/character.ts` to modify the default character. Uncomment and edit.
+## Core Features
 
-### Custom characters
+### Social Impact Analysis & DAO Creation
+- Real-time photo/video analysis from Meta Ray-Ban glasses
+- Location-based social issue identification
+- Automated DAO/fundraiser creation for local causes
+- Before/after documentation of improvements
+- Social media campaign management
+- Smart contract-based treasury management
 
-To load custom characters instead:
-- Use `pnpm start --characters="path/to/your/character.json"`
-- Multiple character files can be loaded simultaneously
+### Crypto-Commerce Integration
+- Amazon purchase automation via crypto payments
+- Bitrefill gift card integration
+- USDC payment processing
+- Automated checkout process
 
-### Add clients
+### Media Processing
+- Photo/video analysis using Twelve Labs
+- Location and weather context integration
+- Social media content optimization
+- Automated video editing and effects
+- Content monetization preparation
+
+## Technical Stack
+
+### Hardware
+- Meta Ray-Ban Smart Glasses
+  - Photo/video capture
+  - GPS location tracking
+  - Environmental data collection
+
+### Blockchain & Smart Contracts
+- EigenLayer AVS for data verification
+- DAO smart contracts for fundraising
+- Treasury management contracts
+- USDC payment integration
+
+### AI & Analysis
+- Twelve Labs video analysis
+- Location-based context analysis
+- Weather data integration
+- Social media optimization
+
+## Use Cases
+
+### 1. Social Cause Identification & Fundraising
+Example: Water Conservation in Brookline
 ```
-# in character.ts
-clients: [Clients.TWITTER, Clients.DISCORD],
-
-# in character.json
-clients: ["twitter", "discord"]
+Input: Photo/video of water-related issues
+↓
+Analysis: Location + context + social media research
+↓
+Output: DAO creation + fundraising campaign + social media awareness
 ```
 
-## Duplicate the .env.example template
+### 2. Crypto-Commerce Automation
+Example: Amazon Purchase via Crypto
+```
+Input: Photo/video of desired product
+↓
+Process: Bitrefill USDC → Gift Card → Amazon checkout
+↓
+Output: Automated product purchase
+```
 
+## Setup
+
+1. Hardware Requirements:
+   - Meta Ray-Ban Smart Glasses
+   - Internet connectivity
+   - Mobile device for glasses pairing
+
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Configure environment:
 ```bash
 cp .env.example .env
 ```
 
-\* Fill out the .env file with your own values.
-
-### Add login credentials and keys to .env
+Required API Keys:
 ```
-DISCORD_APPLICATION_ID="discord-application-id"
-DISCORD_API_TOKEN="discord-api-token"
-...
-OPENROUTER_API_KEY="sk-xx-xx-xxx"
-...
-TWITTER_USERNAME="username"
-TWITTER_PASSWORD="password"
-TWITTER_EMAIL="your@email.com"
+ANTHROPIC_API_KEY=your_key
+OPEN_WEATHER_API_KEY=your_key
+NEWS_API_KEY=your_key
+TWELVE_LABS_API_KEY=your_key
+BITREFILL_API_KEY=your_key
+EIGENLAYER_RPC_URL=http://localhost:8545
+EIGENLAYER_PRIVATE_KEY=your_key
 ```
 
-## Install dependencies and start your agent
+## Smart Contract Deployment
 
+1. Deploy DAO & Treasury contracts:
 ```bash
-pnpm i && pnpm start
-```
-Note: this requires node to be at least version 22 when you install packages and run the agent.
-
-## Run with Docker
-
-### Build and run Docker Compose (For x86_64 architecture)
-
-#### Edit the docker-compose.yaml file with your environment variables
-
-```yaml
-services:
-    eliza:
-        environment:
-            - OPENROUTER_API_KEY=blahdeeblahblahblah
+pnpm run deploy:dao
 ```
 
-#### Run the image
-
+2. Deploy verification system:
 ```bash
-docker compose up
+pnpm run deploy:avs
 ```
 
-### Build the image with Mac M-Series or aarch64
+## Running the Agent
 
-Make sure docker is running.
-
+1. Start the main service:
 ```bash
-# The --load flag ensures the built image is available locally
-docker buildx build --platform linux/amd64 -t eliza-starter:v1 --load .
+pnpm run start
 ```
 
-#### Edit the docker-compose-image.yaml file with your environment variables
-
-```yaml
-services:
-    eliza:
-        environment:
-            - OPENROUTER_API_KEY=blahdeeblahblahblah
-```
-
-#### Run the image
-
+2. Start the media processing service:
 ```bash
-docker compose -f docker-compose-image.yaml up
+pnpm run start:media
 ```
 
-# Deploy with Railway
+3. Start the social analysis service:
+```bash
+pnpm run start:social
+```
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/aW47_j)
+## Development
+
+### Testing
+```bash
+pnpm test
+```
+
+### Local Development
+```bash
+pnpm run dev
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Meta for Ray-Ban smart glasses integration
+- EigenLayer for blockchain verification
+- Twelve Labs for video analysis
+- Bitrefill for crypto-commerce integration
+- OpenWeather for environmental data
+- Local communities for social cause identification
