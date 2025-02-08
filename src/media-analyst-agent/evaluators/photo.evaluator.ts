@@ -38,7 +38,7 @@ export class PhotoEvaluator implements Evaluator {
 
       // Generate content hash for verification
       const hash = createHash('sha256')
-        .update(photoData.buffer)
+        .update(new Uint8Array(photoData.buffer))
         .digest('hex');
 
       // Add basic content tags

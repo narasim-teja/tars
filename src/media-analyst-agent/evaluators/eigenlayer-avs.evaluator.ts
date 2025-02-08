@@ -1,9 +1,12 @@
 import { Evaluator, IAgentRuntime, Memory, elizaLogger } from '@elizaos/core';
-import { createHash } from 'crypto';
-import { Contract, Wallet, JsonRpcProvider } from 'ethers';
+import { ethers } from 'ethers';
 
-// Import ABI (you'll need to generate this from the contract)
-import { ImageVerificationAVS__factory } from '../typechain';
+// Simple ABI for the functions we need
+const SERVICE_MANAGER_ABI = [
+  'function createNewTask(bytes32 imageHash, bytes32 metadataHash, bytes deviceSignature) external returns (tuple(bytes32 imageHash, bytes32 metadataHash, uint32 taskCreatedBlock, bytes deviceSignature))',
+  'event NewTaskCreated(uint32 indexed taskIndex, tuple(bytes32 imageHash, bytes32 metadataHash, uint32 taskCreatedBlock, bytes deviceSignature) task)',
+  'function allTaskResponses(address operator, uint32 taskIndex) external view returns (bytes)'
+];
 
 interface ImageVerificationResult {
   isAuthentic: boolean;
@@ -61,20 +64,28 @@ export class EigenLayerAVSEvaluator implements Evaluator {
     }
   ];
 
-  private contract: Contract;
-  private wallet: Wallet;
+  private provider: ethers.JsonRpcProvider;
+  private wallet: ethers.Wallet;
+  private serviceManager: ethers.Contract;
 
-  constructor() {
-    const provider = new JsonRpcProvider(process.env.EIGENLAYER_RPC_URL);
-    this.wallet = new Wallet(process.env.EIGENLAYER_PRIVATE_KEY, provider);
-    this.contract = ImageVerificationAVS__factory.connect(
-      process.env.IMAGE_VERIFICATION_AVS_ADDRESS,
+  constructor(
+    config = {
+      rpcUrl: process.env.EIGENLAYER_RPC_URL || 'http://localhost:8545',
+      privateKey: process.env.EIGENLAYER_PRIVATE_KEY || '',
+      serviceManagerAddress: process.env.SERVICE_MANAGER_ADDRESS || ''
+    }
+  ) {
+    this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
+    this.wallet = new ethers.Wallet(config.privateKey, this.provider);
+    this.serviceManager = new ethers.Contract(
+      config.serviceManagerAddress,
+      SERVICE_MANAGER_ABI,
       this.wallet
     );
   }
 
   private async generateImageHash(buffer: Buffer): Promise<string> {
-    return createHash('sha256').update(buffer).digest('hex');
+    return ethers.keccak256(new Uint8Array(buffer));
   }
 
   private async verifyMetaSignature(metadata: any): Promise<boolean> {
@@ -82,53 +93,7 @@ export class EigenLayerAVSEvaluator implements Evaluator {
     if (!metadata?.Make?.includes('Meta') || !metadata?.Model?.includes('Ray-Ban')) {
       return false;
     }
-    return true; // Placeholder - would actually verify with Meta's API
-  }
-
-  private async createEigenLayerProof(
-    imageHash: string,
-    metadata: any,
-    deviceSignature?: string
-  ): Promise<string> {
-    try {
-      // Create verification task on AVS contract
-      const metadataHash = createHash('sha256')
-        .update(JSON.stringify(metadata))
-        .digest('hex');
-
-      const tx = await this.contract.createVerificationTask(
-        `0x${imageHash}`,
-        `0x${metadataHash}`,
-        deviceSignature || '0x'
-      );
-      
-      const receipt = await tx.wait();
-      const taskId = receipt.events[0].args.taskId;
-
-      // In a real implementation, we would:
-      // 1. Wait for operators to verify the task
-      // 2. Aggregate their signatures
-      // 3. Generate a ZK proof
-      // 4. Submit the proof to the contract
-
-      // For now, we'll create a simple proof
-      const proof = Buffer.from('placeholder_proof');
-      
-      // Submit verification result
-      const submitTx = await this.contract.submitVerification(
-        taskId,
-        true, // isAuthentic
-        '0x', // operatorSignature (placeholder)
-        proof
-      );
-      
-      await submitTx.wait();
-      
-      return taskId;
-    } catch (error) {
-      elizaLogger.error('Error creating EigenLayer proof:', error);
-      throw error;
-    }
+    return true; // In production, would verify with Meta's API
   }
 
   private async verifyChain(buffer: Buffer, metadata: any): Promise<{
@@ -144,15 +109,15 @@ export class EigenLayerAVSEvaluator implements Evaluator {
   }> {
     const captureDevice = `${metadata?.Make || 'Unknown'} ${metadata?.Model || 'Device'}`;
     const initialHash = await this.generateImageHash(buffer);
-    const transmissionHash = createHash('sha256')
-      .update(initialHash + metadata?.DateTimeOriginal)
-      .digest('hex');
-    const processingHash = createHash('sha256')
-      .update(transmissionHash + JSON.stringify(metadata))
-      .digest('hex');
-    const finalHash = createHash('sha256')
-      .update(processingHash + Date.now().toString())
-      .digest('hex');
+    const transmissionHash = ethers.keccak256(
+      ethers.toUtf8Bytes(initialHash + metadata?.DateTimeOriginal)
+    );
+    const processingHash = ethers.keccak256(
+      ethers.toUtf8Bytes(transmissionHash + JSON.stringify(metadata))
+    );
+    const finalHash = ethers.keccak256(
+      ethers.toUtf8Bytes(processingHash + Date.now().toString())
+    );
     
     return {
       isValid: true,
@@ -211,13 +176,25 @@ export class EigenLayerAVSEvaluator implements Evaluator {
         };
       }
 
-      // 4. Generate EigenLayer proof
-      verificationSteps.push('Generating EigenLayer proof...');
-      const eigenlayerProof = await this.createEigenLayerProof(
-        imageHash,
-        content.metadata,
-        content.metadata?.deviceSignature
-      );
+      // 4. Check AVS verification status if available
+      let eigenlayerProof = undefined;
+      if (content.avsVerification?.taskId) {
+        verificationSteps.push('Checking AVS verification status...');
+        const taskResponses = await this.serviceManager.allTaskResponses(
+          this.wallet.address,
+          content.avsVerification.taskId
+        );
+        
+        if (taskResponses && taskResponses.length > 0) {
+          eigenlayerProof = ethers.keccak256(
+            ethers.toUtf8Bytes(JSON.stringify({
+              taskId: content.avsVerification.taskId,
+              responses: taskResponses,
+              timestamp: Date.now()
+            }))
+          );
+        }
+      }
 
       // 5. Final verification result
       verificationSteps.push('Verification complete');
@@ -231,7 +208,7 @@ export class EigenLayerAVSEvaluator implements Evaluator {
           eigenlayerProof,
           verificationChain: chainVerification.chain
         },
-        confidenceScore: 1.0,
+        confidenceScore: eigenlayerProof ? 1.0 : 0.7,
         verificationSteps
       };
     } catch (error) {

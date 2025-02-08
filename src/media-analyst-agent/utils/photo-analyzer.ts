@@ -4,9 +4,39 @@ import path from 'path';
 import { elizaLogger } from '@elizaos/core';
 import heicConvert from 'heic-convert';
 import exifr from 'exifr';
+import { ethers } from 'ethers';
+import { createHash } from 'crypto';
+
+// Simple ABI for the functions we need
+const SERVICE_MANAGER_ABI = [
+  'function createNewTask(bytes32 imageHash, bytes32 metadataHash, bytes deviceSignature) external returns (tuple(bytes32 imageHash, bytes32 metadataHash, uint32 taskCreatedBlock, bytes deviceSignature))',
+  'event NewTaskCreated(uint32 indexed taskIndex, tuple(bytes32 imageHash, bytes32 metadataHash, uint32 taskCreatedBlock, bytes deviceSignature) task)'
+];
 
 export class PhotoAnalyzer {
-  constructor(private agent: MediaAnalystAgent) {}
+  private provider: ethers.JsonRpcProvider;
+  private wallet: ethers.Wallet;
+  private serviceManager: ethers.Contract;
+
+  constructor(
+    private agent: MediaAnalystAgent,
+    avsConfig = {
+      rpcUrl: 'http://localhost:8545',
+      privateKey: process.env.OPERATOR_PRIVATE_KEY || '',
+      serviceManagerAddress: process.env.SERVICE_MANAGER_ADDRESS || ''
+    }
+  ) {
+    // Initialize ethers provider and wallet
+    this.provider = new ethers.JsonRpcProvider(avsConfig.rpcUrl);
+    this.wallet = new ethers.Wallet(avsConfig.privateKey, this.provider);
+    
+    // Initialize service manager contract
+    this.serviceManager = new ethers.Contract(
+      avsConfig.serviceManagerAddress,
+      SERVICE_MANAGER_ABI,
+      this.wallet
+    );
+  }
 
   private async extractMetadata(buffer: Buffer, filePath: string) {
     try {
@@ -66,6 +96,53 @@ export class PhotoAnalyzer {
     }
   }
 
+  private async sendToAVS(buffer: Buffer, metadata: any): Promise<{
+    taskId: string;
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      // Create hashes for image and metadata
+      const imageHash = ethers.keccak256(new Uint8Array(buffer));
+      const metadataHash = ethers.keccak256(
+        ethers.toUtf8Bytes(JSON.stringify(metadata))
+      );
+
+      // Create device signature (in a real implementation, this would come from the Meta device)
+      const deviceSignature = ethers.toUtf8Bytes('meta-device-signature');
+
+      // Send to AVS
+      const tx = await this.serviceManager.createNewTask(
+        imageHash,
+        metadataHash,
+        deviceSignature
+      );
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      
+      // Get task ID from event
+      const event = receipt.logs
+        .map(log => this.serviceManager.interface.parseLog(log))
+        .find(event => event?.name === 'NewTaskCreated');
+      
+      const taskId = event?.args?.taskIndex?.toString();
+
+      return {
+        taskId,
+        success: true,
+        message: `Image verification task created successfully. Task ID: ${taskId}`
+      };
+    } catch (error) {
+      elizaLogger.error('Error sending to AVS:', error);
+      return {
+        taskId: '',
+        success: false,
+        message: `Failed to send to AVS: ${error.message}`
+      };
+    }
+  }
+
   private async convertHeicToBuffer(heicBuffer: Buffer): Promise<Buffer> {
     try {
       const jpegBuffer = await heicConvert({
@@ -93,15 +170,23 @@ export class PhotoAnalyzer {
         ? await this.convertHeicToBuffer(buffer)
         : buffer;
       
-      const result = await this.agent.analyzePhoto({
+      // Send to AVS first
+      const avsResult = await this.sendToAVS(processedBuffer, originalMetadata);
+      elizaLogger.info('AVS Result:', avsResult);
+
+      // Continue with regular analysis
+      const analysisResult = await this.agent.analyzePhoto({
         buffer: processedBuffer,
         metadata: originalMetadata,
         timestamp: originalMetadata.DateTimeOriginal || new Date(),
         location: originalMetadata.location
       });
 
-      elizaLogger.info('Analysis result:', result);
-      return result;
+      elizaLogger.info('Analysis result:', analysisResult);
+      return {
+        ...analysisResult,
+        avsVerification: avsResult
+      };
     } catch (error) {
       elizaLogger.error('Error analyzing photo:', error);
       throw error;

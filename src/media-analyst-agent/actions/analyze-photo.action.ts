@@ -46,7 +46,7 @@ export class AnalyzePhotoAction implements Action {
     try {
       // Generate hash for authenticity
       const hash = createHash('sha256')
-        .update(photoData.buffer)
+        .update(new Uint8Array(photoData.buffer))
         .digest('hex');
 
       // Extract GPS coordinates if available

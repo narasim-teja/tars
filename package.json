@@ -12,7 +12,10 @@
     "start:anvil": "anvil",
     "start:anvil-quick": "anvil --block-time 0.01",
     "deploy:avs": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
-    "deploy:avs-debug": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug"
+    "deploy:avs-debug": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug",
+    "start:operator": "ts-node src/avs/operator/image-verification.ts",
+    "start:traffic": "ts-node src/avs/operator/createImageVerificationTasks.ts",
+    "deploy:core": "cd src/avs/contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir"
   },
   "dependencies": {
     "@elizaos/adapter-postgres": "0.1.9",
