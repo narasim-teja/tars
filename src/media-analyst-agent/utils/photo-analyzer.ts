@@ -184,7 +184,7 @@ export class PhotoAnalyzer {
 
       elizaLogger.info('Analysis result:', analysisResult);
       return {
-        ...analysisResult,
+        ...(analysisResult as any),
         avsVerification: avsResult
       };
     } catch (error) {

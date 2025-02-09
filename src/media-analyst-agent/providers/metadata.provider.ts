@@ -3,39 +3,26 @@ import exifr from 'exifr';
 
 export class MetadataProvider implements Provider {
   name = 'METADATA';
-  description = 'Extracts and processes photo metadata';
+  description = 'Extracts metadata from photos';
 
   async get(runtime: IAgentRuntime, message: Memory): Promise<any> {
-    const content = message.content as unknown as { buffer: Buffer };
+    const content = message.content as any;
     if (!content?.buffer) {
-      throw new Error('Photo buffer is required');
+      return null; // Return null instead of throwing when no buffer is present
     }
-    return this.extractMetadata(content.buffer);
-  }
 
-  private async extractMetadata(buffer: Buffer): Promise<any> {
+    // Return the metadata if it's already extracted
+    if (content.metadata) {
+      return content.metadata;
+    }
+
+    // Otherwise extract it from the buffer
     try {
-      const metadata = await exifr.parse(buffer, {
-        // Include all available metadata
-        tiff: true,
-        exif: true,
-        gps: true,
-        icc: true,
-        iptc: true,
-        xmp: true,
-        interop: true,
-        translateValues: true,
-        translateKeys: true,
-        reviveValues: true,
-      });
-
-      return {
-        ...metadata,
-        extractedAt: new Date().toISOString(),
-      };
+      const metadata = await exifr.parse(content.buffer);
+      return metadata || {};
     } catch (error) {
       console.error('Error extracting metadata:', error);
-      throw error;
+      return {};
     }
   }
 

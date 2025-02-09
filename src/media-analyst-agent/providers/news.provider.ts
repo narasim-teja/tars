@@ -20,7 +20,7 @@ interface NewsResponse {
 
 export class NewsProvider implements Provider {
   name = 'NEWS';
-  description = 'Provides news articles based on location and time';
+  description = 'Provides news articles related to photo locations';
 
   private async getLocationNews(
     lat: number, 
@@ -89,21 +89,23 @@ export class NewsProvider implements Provider {
     }
   }
 
-  async get(runtime: IAgentRuntime, message: Memory): Promise<NewsArticle[] | null> {
+  async get(runtime: IAgentRuntime, message: Memory): Promise<any> {
     const content = message.content as any;
     
     // Check if we have location data and timestamp
     if (!content?.location?.lat || !content?.location?.lng || !content?.timestamp) {
+      elizaLogger.info('Missing location or timestamp data for news');
       return null;
     }
 
-    // Add a small delay to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
+    elizaLogger.info('Getting news data for location:', content.location);
+    const timestamp = new Date(content.timestamp);
+    
+    // Get news articles for the location and time
     return this.getLocationNews(
       content.location.lat,
       content.location.lng,
-      new Date(content.timestamp)
+      timestamp
     );
   }
 

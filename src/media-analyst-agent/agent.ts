@@ -1,4 +1,4 @@
-import { AgentRuntime, elizaLogger, type Character, stringToUuid } from '@elizaos/core';
+import { AgentRuntime, elizaLogger, type Character, stringToUuid, Memory } from '@elizaos/core';
 import { AnalyzePhotoAction } from './actions/analyze-photo.action.js';
 import { PhotoEvaluator } from './evaluators/photo.evaluator.js';
 import { AuthenticityEvaluator } from './evaluators/authenticity.evaluator.js';
@@ -7,10 +7,20 @@ import { MetadataProvider } from './providers/metadata.provider.js';
 import { LocationProvider } from './providers/location.provider.js';
 import { WeatherProvider } from './providers/weather.provider.js';
 import { NewsProvider } from './providers/news.provider.js';
+import path from 'path';
+import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class MediaAnalystAgent extends AgentRuntime {
+  analyzePhoto(arg0: { buffer: Buffer<ArrayBufferLike>; metadata: any; timestamp: any; location: any; }) {
+    throw new Error('Method not implemented.');
+  }
   private readonly LOCAL_USER_ID = stringToUuid('local-user');
   private readonly LOCAL_ROOM_ID = stringToUuid('local-analysis-room');
+  private watchInterval: NodeJS.Timeout | null = null;
 
   constructor(config: {
     character: Character;
@@ -47,52 +57,76 @@ export class MediaAnalystAgent extends AgentRuntime {
   async startDataCollection(): Promise<void> {
     elizaLogger.info('Media analysis service started');
     
-    // The agent will now handle photo analysis on-demand
-    // rather than periodic collection
+    const testPhotoDir = path.join(__dirname, '../../../test/photos');
+    
+    try {
+      // Ensure the photos directory exists
+      await fs.mkdir(testPhotoDir, { recursive: true });
+      
+      // Initial scan of existing photos
+      await this.processPhotosInDirectory(testPhotoDir);
+      
+      // Set up watching for new photos
+      this.watchInterval = setInterval(async () => {
+        try {
+          await this.processPhotosInDirectory(testPhotoDir);
+        } catch (error) {
+          elizaLogger.error('Error processing photos:', error);
+        }
+      }, 5000); // Check every 5 seconds
+      
+    } catch (error) {
+      elizaLogger.error('Error starting data collection:', error);
+      throw error;
+    }
   }
 
-  async analyzePhoto(photoData: {
-    buffer: Buffer;
-    metadata: any;
-    timestamp: Date;
-    location?: { lat: number; lng: number };
-  }): Promise<{
-    analysis: string;
-    authenticity: boolean;
-    contextualData: {
-      weather?: any;
-      news?: any;
-      location?: {
-        coordinates: string;
-        address?: string;
-        city?: string;
-        state?: string;
-        country?: string;
-        landmarks?: string[];
-      };
-    };
-  }> {
+  private async processPhotosInDirectory(dirPath: string) {
+    const supportedExtensions = ['.jpg', '.jpeg', '.png', '.heic'];
+    
     try {
-      const action = this.actions.find(a => a instanceof AnalyzePhotoAction);
-      if (action) {
-        return await action.handler(this, {
-          userId: this.LOCAL_USER_ID,
-          roomId: this.LOCAL_ROOM_ID,
-          agentId: this.agentId,
-          content: {
-            text: '',
-            ...photoData
+      const files = await fs.readdir(dirPath);
+      
+      for (const file of files) {
+        const ext = path.extname(file).toLowerCase();
+        if (supportedExtensions.includes(ext)) {
+          const filePath = path.join(dirPath, file);
+          
+          try {
+            elizaLogger.info(`Processing photo: ${file}`);
+            const buffer = await fs.readFile(filePath);
+            
+            // Use the action system to process the photo
+            const action = this.actions.find(a => a instanceof AnalyzePhotoAction);
+            if (action) {
+              const result = await action.handler(this, {
+                userId: this.LOCAL_USER_ID,
+                roomId: this.LOCAL_ROOM_ID,
+                agentId: this.agentId,
+                content: {
+                  text: 'process photo',
+                  buffer,
+                  filePath
+                }
+              });
+              elizaLogger.info(`Analysis complete for ${file}:`, result);
+            }
+          } catch (error) {
+            elizaLogger.error(`Error analyzing ${file}:`, error);
           }
-        });
+        }
       }
-      throw new Error('Photo analysis action not found');
     } catch (error) {
-      elizaLogger.error('Error analyzing photo:', error);
+      elizaLogger.error('Error reading directory:', error);
       throw error;
     }
   }
 
   async cleanup(): Promise<void> {
+    if (this.watchInterval) {
+      clearInterval(this.watchInterval);
+      this.watchInterval = null;
+    }
     elizaLogger.info('Media Analyst Agent cleaned up');
   }
 } 

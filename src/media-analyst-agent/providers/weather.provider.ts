@@ -35,7 +35,7 @@ interface WeatherData {
 
 export class WeatherProvider implements Provider {
   name = 'WEATHER';
-  description = 'Provides current and historical weather information for a given location';
+  description = 'Provides weather information for photo locations';
 
   private async getCurrentWeather(lat: number, lon: number): Promise<WeatherData | null> {
     try {
@@ -137,33 +137,33 @@ export class WeatherProvider implements Provider {
     }
   }
 
-  async get(runtime: IAgentRuntime, message: Memory): Promise<WeatherData | null> {
+  async get(runtime: IAgentRuntime, message: Memory): Promise<any> {
     const content = message.content as any;
     
     // Check if we have location data
     if (!content?.location?.lat || !content?.location?.lng) {
+      elizaLogger.info('No location data available for weather');
       return null;
     }
 
-    // Add a small delay to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    elizaLogger.info('Getting weather data for location:', content.location);
 
-    // If we have a timestamp in the content, fetch historical data
+    // If we have a timestamp, try to get historical weather
     if (content.timestamp) {
-      const timestamp = Math.floor(new Date(content.timestamp).getTime() / 1000);
-      return this.getHistoricalWeather(content.location.lat, content.location.lng, timestamp);
+      const timestamp = new Date(content.timestamp);
+      const unixTimestamp = Math.floor(timestamp.getTime() / 1000);
+      return this.getHistoricalWeather(content.location.lat, content.location.lng, unixTimestamp);
     }
 
-    // Otherwise, fetch current weather
+    // Otherwise get current weather
     return this.getCurrentWeather(content.location.lat, content.location.lng);
   }
 
-  // Public method to explicitly get current weather
+  // Remove the mock implementations and use the real API methods
   async getCurrentWeatherData(lat: number, lon: number): Promise<WeatherData | null> {
     return this.getCurrentWeather(lat, lon);
   }
 
-  // Public method to explicitly get historical weather
   async getHistoricalWeatherData(lat: number, lon: number, timestamp: Date): Promise<WeatherData | null> {
     const unixTimestamp = Math.floor(timestamp.getTime() / 1000);
     return this.getHistoricalWeather(lat, lon, unixTimestamp);

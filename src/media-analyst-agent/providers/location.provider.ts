@@ -1,4 +1,5 @@
 import { Provider, IAgentRuntime, Memory } from '@elizaos/core';
+import { elizaLogger } from '@elizaos/core';
 
 interface LocationDetails {
   address: string;
@@ -12,7 +13,7 @@ interface LocationDetails {
 
 export class LocationProvider implements Provider {
   name = 'LOCATION';
-  description = 'Provides detailed location information from coordinates';
+  description = 'Provides location information from photo metadata';
 
   private async reverseGeocode(lat: number, lon: number): Promise<LocationDetails> {
     try {
@@ -58,17 +59,18 @@ export class LocationProvider implements Provider {
     }
   }
 
-  async get(runtime: IAgentRuntime, message: Memory): Promise<LocationDetails | null> {
+  async get(runtime: IAgentRuntime, message: Memory): Promise<any> {
     const content = message.content as any;
     
     // Check if we have location data
     if (!content?.location?.lat || !content?.location?.lng) {
+      elizaLogger.info('No location data available');
       return null;
     }
 
-    // Add a small delay to respect rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
+    elizaLogger.info('Getting location details for coordinates:', content.location);
+    
+    // Get location details from OpenStreetMap
     return this.reverseGeocode(content.location.lat, content.location.lng);
   }
 } 
