@@ -6,7 +6,7 @@ TARS is a decentralized platform that revolutionizes social impact verification 
 
 ## Demo
 
-Watch our demo video to see TARS in action:
+Watch my demo video to see TARS in action:
 [🎥 TARS Demo Video](https://screen.studio/share/6EVVyVKl)
 
 ## Core Components
@@ -163,7 +163,7 @@ pnpm run start:agent-photo
 
 ## Detailed Setup
 
-For detailed AVS setup and operation instructions, please refer to our [AVS Documentation](https://github.com/narasim-teja/tars-AVS-fork-of-Hello-World-AVS-).
+For detailed AVS setup and operation instructions, please refer to my [AVS Documentation](https://github.com/narasim-teja/tars-AVS-fork-of-Hello-World-AVS-).
 
 ## Development
 
