@@ -7,6 +7,7 @@ import { MetadataProvider } from './providers/metadata.provider.js';
 import { LocationProvider } from './providers/location.provider.js';
 import { WeatherProvider } from './providers/weather.provider.js';
 import { NewsProvider } from './providers/news.provider.js';
+import { ImageAnalysisProvider } from './providers/image-analysis.provider.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -41,6 +42,7 @@ export class MediaAnalystAgent extends AgentRuntime {
         new LocationProvider(),
         new WeatherProvider(),
         new NewsProvider(),
+        new ImageAnalysisProvider(),
       ],
       actions: [new AnalyzePhotoAction()],
       services: [],

@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { ethers } from 'ethers';
 import heicConvert from 'heic-convert';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,9 +90,31 @@ export class AnalyzePhotoAction implements Action {
         format: 'JPEG',
         quality: 1
       });
+
+      // Resize the converted image if it's too large
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      if (jpegBuffer.length > MAX_SIZE) {
+        elizaLogger.info('Converted JPEG exceeds 5MB, resizing...');
+        let quality = 80;
+        let resizedBuffer = await sharp(jpegBuffer)
+          .jpeg({ quality })
+          .toBuffer();
+
+        while (resizedBuffer.length > MAX_SIZE && quality > 30) {
+          quality -= 10;
+          resizedBuffer = await sharp(jpegBuffer)
+            .resize(2000, 2000, { fit: 'inside' })
+            .jpeg({ quality })
+            .toBuffer();
+        }
+
+        elizaLogger.info(`Image resized successfully. New size: ${resizedBuffer.length} bytes`);
+        return resizedBuffer;
+      }
+
       return jpegBuffer;
     } catch (error) {
-      elizaLogger.error('Error converting HEIC:', error);
+      elizaLogger.error('Error converting/resizing HEIC:', error);
       throw error;
     }
   }
@@ -320,6 +343,26 @@ export class AnalyzePhotoAction implements Action {
       // Generate hash for authenticity
       const hash = ethers.keccak256(new Uint8Array(photoData.buffer));
 
+      // Resize the image if needed (for non-HEIC images)
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      let processedBuffer = photoData.buffer;
+      if (processedBuffer.length > MAX_SIZE) {
+        elizaLogger.info('Image exceeds 5MB, resizing...');
+        let quality = 80;
+        processedBuffer = await sharp(photoData.buffer)
+          .jpeg({ quality })
+          .toBuffer();
+
+        while (processedBuffer.length > MAX_SIZE && quality > 30) {
+          quality -= 10;
+          processedBuffer = await sharp(photoData.buffer)
+            .resize(2000, 2000, { fit: 'inside' })
+            .jpeg({ quality })
+            .toBuffer();
+        }
+        elizaLogger.info(`Image resized successfully. New size: ${processedBuffer.length} bytes`);
+      }
+
       // Extract GPS coordinates from metadata
       let coordinates = null;
       if (photoData.metadata) {
@@ -327,6 +370,29 @@ export class AnalyzePhotoAction implements Action {
           coordinates = { lat: photoData.metadata.latitude, lng: photoData.metadata.longitude };
         } else if (photoData.metadata.GPSLatitude && photoData.metadata.GPSLongitude) {
           coordinates = { lat: photoData.metadata.GPSLatitude, lng: photoData.metadata.GPSLongitude };
+        }
+      }
+
+      // Get image analysis first
+      let imageAnalysis = null;
+      const imageAnalysisProvider = runtime.providers.find(p => (p as any).name === 'IMAGE_ANALYSIS');
+      if (imageAnalysisProvider) {
+        elizaLogger.info('Getting image analysis...');
+        const imageAnalysisMemory = {
+          userId: runtime.agentId,
+          roomId: runtime.agentId,
+          agentId: runtime.agentId,
+          content: { 
+            text: 'analyze image',
+            imageUrl: `data:image/jpeg;base64,${processedBuffer.toString('base64')}`,
+            type: 'text'
+          }
+        };
+        try {
+          imageAnalysis = await imageAnalysisProvider.get(runtime, imageAnalysisMemory);
+          elizaLogger.info('Image analysis result:', imageAnalysis);
+        } catch (error) {
+          elizaLogger.error('Error during image analysis:', error);
         }
       }
 
@@ -346,7 +412,7 @@ export class AnalyzePhotoAction implements Action {
           agentId: runtime.agentId,
           content: { 
             text: '',
-            buffer: photoData.buffer, 
+            buffer: processedBuffer, 
             location: coordinates,
             timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp || new Date()
           }
@@ -385,7 +451,8 @@ export class AnalyzePhotoAction implements Action {
         exposureTime: photoData.metadata?.ExposureTime,
         flash: photoData.metadata?.Flash,
         location: coordinates,
-        hash
+        hash,
+        imageAnalysis: imageAnalysis || null
       };
 
       return {

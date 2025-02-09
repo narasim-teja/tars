@@ -11,17 +11,18 @@
     "stop:service:all": "pm2 stop all",
     "start:anvil": "anvil",
     "start:anvil-quick": "anvil --block-time 0.01",
-    "deploy:avs": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
-    "deploy:avs-debug": "cd src/avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug",
-    "start:operator": "ts-node src/avs/operator/image-verification.ts",
-    "start:traffic": "ts-node src/avs/operator/createImageVerificationTasks.ts",
-    "deploy:core": "cd src/avs/contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
+    "deploy:avs": "cd hello-world-avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
+    "deploy:avs-debug": "cd hello-world-avs/contracts && forge script script/ImageVerificationDeployer.s.sol --rpc-url http://localhost:8545 --broadcast --revert-strings debug",
+    "start:operator": "ts-node hello-world-avs/operator/image-verification.ts",
+    "start:traffic": "ts-node hello-world-avs/operator/createImageVerificationTasks.ts",
+    "deploy:core": "cd hello-world-avs/contracts && forge script script/DeployEigenLayerCore.s.sol --rpc-url http://localhost:8545 --broadcast --optimize --optimizer-runs 200 --via-ir",
     "start:agent-impact": "cd src && NODE_OPTIONS='--loader ts-node/esm' ts-node --esm --experimentalSpecifierResolution=node index.ts --character=../characters/impact_analyst.character.json",
-    "start:agent-social": "cd src && NODE_OPTIONS='--loader ts-node/esm' ts-node --esm --experimentalSpecifierResolution=node index.ts --character=../characters/social_impact_analyst.character.json",
+    "start:agent-photo": "cd src && NODE_OPTIONS='--loader ts-node/esm' ts-node --esm --experimentalSpecifierResolution=node index.ts --character=../characters/photo_analyst.character.json",
     "start:frontend": "cd frontend && pnpm dev",
     "dev": "concurrently \"pnpm run start:agent-impact\" \"pnpm run start:frontend\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
     "@elizaos/adapter-postgres": "0.1.9",
     "@elizaos/adapter-sqlite": "0.1.9",
     "@elizaos/client-auto": "0.1.9",
@@ -37,8 +38,10 @@
     "@elizaos/plugin-starknet": "0.1.9",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@tavily/core": "0.0.2",
+    "@types/sharp": "^0.32.0",
     "amqplib": "0.10.5",
     "better-sqlite3": "11.5.0",
+    "concurrently": "^8.2.2",
     "dotenv": "^16.4.7",
     "eigenlayer-contracts": "^1.0.4",
     "ethers": "^6.13.5",
@@ -49,10 +52,10 @@
     "net": "1.0.2",
     "path": "0.12.7",
     "readline": "1.3.0",
+    "sharp": "^0.33.5",
     "url": "0.11.4",
     "ws": "8.18.0",
-    "yargs": "17.7.2",
-    "concurrently": "^8.2.2"
+    "yargs": "17.7.2"
   },
   "engines": {
     "node": ">=22"
