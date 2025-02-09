@@ -1,8 +1,10 @@
-import { ChartBarIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-
+import { UserGroupIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { PhotoIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
 
 export default function Home() {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero section */}
@@ -13,8 +15,25 @@ export default function Home() {
               TARS - Transformative Action Recognition System
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              A decentralized platform that empowers communities to identify, verify, and act on social and environmental issues through AI-powered media analysis and democratic decision-making.
+              A decentralized platform powered by EigenLayer that revolutionizes social impact verification through AI-driven analysis and DAO governance. Using smart glasses like Ray-Ban Meta, we bridge real-world initiatives with Web3 decision-making.
             </p>
+            <div className="mt-10 flex items-center justify-center gap-x-6">
+              
+              <div className="relative">
+                <button
+                  onMouseEnter={() => setShowTooltip(true)}
+                  onMouseLeave={() => setShowTooltip(false)}
+                  className="rounded-md bg-gray-800 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-700"
+                >
+                  Join as Agent
+                </button>
+                {showTooltip && (
+                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-black text-white text-xs rounded whitespace-nowrap">
+                    Coming Soon
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -22,9 +41,12 @@ export default function Home() {
       {/* Feature section */}
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-indigo-600">How It Works</h2>
+          <h2 className="text-base font-semibold leading-7 text-indigo-600">Powered by EigenLayer</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            From Detection to Action
+            Trustless Verification Pipeline
+          </p>
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            TARS combines EigenLayer's AVS infrastructure with AI analysis to create a reliable system for verifying and acting on social initiatives.
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
@@ -32,26 +54,26 @@ export default function Home() {
             <div className="flex flex-col">
               <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
                 <div className="rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600">
-                  <PhotoIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                  <ShieldCheckIcon className="h-6 w-6 text-white" aria-hidden="true" />
                 </div>
-                Media Analysis
+                EigenLayer Verification
               </dt>
               <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                 <p className="flex-auto">
-                  Our AI agent continuously monitors and analyzes media content from various sources for 2-3 days to identify potential social and environmental issues.
+                  Our custom AVS (Actively Validated Service) ensures media authenticity through decentralized operator verification, leveraging Ethereum's security through restaking.
                 </p>
               </dd>
             </div>
             <div className="flex flex-col">
               <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
                 <div className="rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600">
-                  <ChartBarIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                  <PhotoIcon className="h-6 w-6 text-white" aria-hidden="true" />
                 </div>
-                Impact Assessment
+                AI-Powered Analysis
               </dt>
               <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                 <p className="flex-auto">
-                  Each issue is assigned an impact score based on its urgency, scope, and potential for positive change through community action.
+                  Advanced AI agents analyze verified media using Claude Vision, gathering contextual data from weather and news APIs to provide comprehensive impact assessments.
                 </p>
               </dd>
             </div>
@@ -60,11 +82,11 @@ export default function Home() {
                 <div className="rounded-lg bg-indigo-600 p-2 ring-1 ring-indigo-600">
                   <UserGroupIcon className="h-6 w-6 text-white" aria-hidden="true" />
                 </div>
-                Community Voting
+                DAO Governance
               </dt>
               <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                 <p className="flex-auto">
-                  High-impact issues are moved to the DAO voting system, where community members can propose and vote on solutions.
+                  Verified initiatives automatically generate proposals in our Arbitrum-based DAO, enabling community-driven decision making and resource allocation.
                 </p>
               </dd>
             </div>
@@ -79,15 +101,10 @@ export default function Home() {
             Ready to make an impact?
           </h2>
           <p className="mt-6 text-lg leading-8 text-gray-300">
-            Join our community of change-makers and help drive positive transformation in your area.
+            Join our network of validators, AI agents, and community members to help identify and address critical social and environmental issues.
           </p>
           <div className="mt-10 flex items-center gap-x-6">
-            <a
-              href="/media"
-              className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              View Media Analysis
-            </a>
+            
             <a href="/voting" className="text-sm font-semibold leading-6 text-white">
               Participate in Voting <span aria-hidden="true">→</span>
             </a>

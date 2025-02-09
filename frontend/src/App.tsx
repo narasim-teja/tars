@@ -6,7 +6,7 @@ import {
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import Media from './pages/Media';
+
 import Voting from './pages/Voting';
 
 function App() {
@@ -25,7 +25,6 @@ function App() {
 
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/media" element={<Media />} />
             <Route path="/voting" element={<Voting />} />
           </Routes>
         </Layout>

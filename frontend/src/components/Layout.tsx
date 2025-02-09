@@ -1,12 +1,10 @@
 import {
   HomeIcon,
-  PhotoIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'Home', href: '/', icon: HomeIcon },
-  { name: 'Media', href: '/media', icon: PhotoIcon },
   { name: 'Voting (DAO)', href: '/voting', icon: UserGroupIcon },
 ]
 
