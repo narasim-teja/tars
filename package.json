@@ -22,7 +22,7 @@
     "@elizaos/adapter-sqlite": "0.1.9",
     "@elizaos/client-auto": "0.1.9",
     "@elizaos/client-direct": "0.1.9",
-    "@elizaos/client-discord": "0.1.7",
+    "@elizaos/client-discord": "0.1.9",
     "@elizaos/client-telegram": "0.1.9",
     "@elizaos/client-twitter": "0.1.9",
     "@elizaos/core": "0.1.9",
@@ -31,13 +31,16 @@
     "@elizaos/plugin-node": "0.1.9",
     "@elizaos/plugin-solana": "0.1.9",
     "@elizaos/plugin-starknet": "0.1.9",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@tavily/core": "0.0.2",
     "amqplib": "0.10.5",
     "better-sqlite3": "11.5.0",
+    "dotenv": "^16.4.7",
     "eigenlayer-contracts": "^1.0.4",
     "ethers": "^6.13.5",
     "exifr": "^7.1.3",
     "fs": "0.0.1-security",
+    "hardhat": "^2.22.18",
     "heic-convert": "^2.1.0",
     "net": "1.0.2",
     "path": "0.12.7",
@@ -55,10 +58,11 @@
     }
   },
   "devDependencies": {
+    "@types/node": "^22.13.1",
     "pm2": "5.4.3",
     "ts-node": "10.9.2",
     "tsup": "8.3.5",
-    "typescript": "5.6.3"
+    "typescript": "5.7.3"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

@@ -11,8 +11,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
     "allowImportingTsExtensions": true,
-    "declaration": true,
-    "emitDeclarationOnly": true,
+    "noEmit": true,
     "resolveJsonModule": true,
     "noImplicitAny": false,
     "allowJs": true,
@@ -20,5 +19,13 @@
     "noEmitOnError": false,
     "moduleDetection": "force",
     "allowArbitraryExtensions": true
-  }
+  },
+  "exclude": [
+    "src/dao/test/**/*",
+    "**/test/**/*",
+    "**/*.test.ts",
+    "node_modules",
+    "dist",
+    "hello-world-avs"
+  ]
 }
