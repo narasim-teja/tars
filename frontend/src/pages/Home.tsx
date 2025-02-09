@@ -1,4 +1,4 @@
-import { UserGroupIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { UserGroupIcon, ShieldCheckIcon, PlayCircleIcon } from "@heroicons/react/24/outline";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
@@ -38,6 +38,43 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Demo Video Section */}
+      <div className="bg-gray-50 py-16">
+        <div className="mx-auto max-w-[1440px] px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              See TARS in Action
+            </h2>
+            <p className="mt-2 text-lg leading-8 text-gray-600">
+              Watch the demo to see how TARS transforms social impact verification
+            </p>
+          </div>
+          <div className="mt-10 flex justify-center">
+            <div className="relative w-full max-w-[1280px] rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-200">
+              <div className="aspect-video">
+                <iframe
+                  className="h-full w-full rounded-lg"
+                  src="https://screen.studio/embed/6EVVyVKl"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 text-center">
+            <a
+              href="https://screen.studio/share/6EVVyVKl"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
+            >
+              <PlayCircleIcon className="h-15 w-15 mr-2" />
+              Open video in new tab
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Feature section */}
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
@@ -60,7 +97,7 @@ export default function Home() {
               </dt>
               <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                 <p className="flex-auto">
-                  Our custom AVS (Actively Validated Service) ensures media authenticity through decentralized operator verification, leveraging Ethereum's security through restaking.
+                   Custom AVS (Actively Validated Service) ensures media authenticity through decentralized operator verification, leveraging Ethereum's security through restaking.
                 </p>
               </dd>
             </div>
@@ -86,7 +123,7 @@ export default function Home() {
               </dt>
               <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                 <p className="flex-auto">
-                  Verified initiatives automatically generate proposals in our Arbitrum-based DAO, enabling community-driven decision making and resource allocation.
+                  Verified initiatives automatically generate proposals in the Arbitrum-based DAO, enabling community-driven decision making and resource allocation.
                 </p>
               </dd>
             </div>
