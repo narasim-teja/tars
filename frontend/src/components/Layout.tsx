@@ -1,13 +1,13 @@
 import {
   HomeIcon,
   PhotoIcon,
-  ChartBarIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: HomeIcon },
-  { name: 'Media Analysis', href: '/media', icon: PhotoIcon },
-  { name: 'Impact Assessment', href: '/impact', icon: ChartBarIcon },
+  { name: 'Home', href: '/', icon: HomeIcon },
+  { name: 'Media', href: '/media', icon: PhotoIcon },
+  { name: 'Voting (DAO)', href: '/voting', icon: UserGroupIcon },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
