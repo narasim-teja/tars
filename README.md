@@ -1,78 +1,134 @@
-# TARS - AI Agent for Social Impact & Commerce
+# TARS - Transformative Action Recognition System
 
-TARS is an AI agent that works with Meta Ray-Ban smart glasses to capture and analyze real-world experiences, create social impact initiatives, and facilitate commerce through crypto payments. The agent processes photos and videos from the glasses to identify social causes, create fundraising DAOs, and handle e-commerce transactions.
+TARS is a decentralized platform that revolutionizes social impact verification through AI-driven analysis and DAO governance. By combining EigenLayer's AVS (Actively Validated Service) with Ray-Ban Meta smart glasses, we create a trustless pipeline from real-world observation to on-chain action.
 
-## Core Features
+![TARS Architecture](./public/tars-arch.png)
 
-### Social Impact Analysis & DAO Creation
-- Real-time photo/video analysis from Meta Ray-Ban glasses
-- Location-based social issue identification
-- Automated DAO/fundraiser creation for local causes
-- Before/after documentation of improvements
-- Social media campaign management
-- Smart contract-based treasury management
+## Demo
 
-### Crypto-Commerce Integration
-- Amazon purchase automation via crypto payments
-- Bitrefill gift card integration
-- USDC payment processing
-- Automated checkout process
+Watch our demo video to see TARS in action:
+[🎥 TARS Demo Video](https://screen.studio/share/6EVVyVKl)
 
-### Media Processing
-- Photo/video analysis using Twelve Labs
-- Location and weather context integration
-- Social media content optimization
-- Automated video editing and effects
-- Content monetization preparation
+## Core Components
+
+### 1. Verification Layer (EigenLayer AVS)
+- Custom AVS for media authenticity verification
+- Decentralized operator network with staking
+- Cryptographic proof generation
+- [Detailed AVS Setup & Documentation](https://github.com/narasim-teja/tars-AVS-fork-of-Hello-World-AVS-)
+
+### 2. AI Analysis Layer
+- Real-time photo/video analysis using Claude Vision
+- Location-based context integration
+- Weather data analysis
+- News correlation for social impact
+- Impact score calculation
+
+### 3. DAO Governance (Arbitrum)
+- Automated proposal generation
+- Community voting system
+- Treasury management
+- [Smart Contract (Arbitrum Sepolia)](https://sepolia.arbiscan.io/address/0x24253Bcb1B99a80D521c72717337BaDcfe5C2C40)
 
 ## Technical Stack
 
-### Hardware
-- Meta Ray-Ban Smart Glasses
+### Hardware Integration
+- Ray-Ban Meta Smart Glasses
   - Photo/video capture
   - GPS location tracking
-  - Environmental data collection
+  - Real-time data streaming
 
-### Blockchain & Smart Contracts
-- EigenLayer AVS for data verification
-- DAO smart contracts for fundraising
-- Treasury management contracts
-- USDC payment integration
+### Blockchain Infrastructure
+- EigenLayer for AVS and restaking
+- Arbitrum Sepolia for DAO contracts
+- IPFS/Pinata for decentralized storage
 
 ### AI & Analysis
-- Twelve Labs video analysis
-- Location-based context analysis
-- Weather data integration
-- Social media optimization
+- Claude Vision API for media analysis
+- OpenWeatherMap API for environmental context
+- NewsAPI for social impact correlation
+- Custom TypeScript agents for orchestration
 
-## Use Cases
+## Hackathon Track Qualifications
 
-### 1. Social Cause Identification & Fundraising
-Example: Water Conservation in Brookline
+### EigenLayer Track
+TARS leverages EigenLayer's AVS infrastructure to create a trustless media verification system:
+
+1. **Open-source Implementation**
+   - Complete codebase available on [GitHub](https://github.com/narasim-teja/tars-AVS-fork-of-Hello-World-AVS-)
+   - Well-documented code with clear architecture
+
+2. **Architecture Documentation**
+   - Comprehensive system architecture diagrams
+   - Detailed AVS integration documentation
+   - Clear operator setup instructions
+   - Step-by-step deployment guides
+
+3. **Working Proof-of-Concept**
+   - Functional AVS for media verification
+   - Live operator network on testnet
+   - Demonstrable restaking integration
+   - [Watch Demo](https://screen.studio/share/6EVVyVKl)
+
+### Arbitrum Track
+TARS demonstrates innovative AI integration on Arbitrum Sepolia:
+
+1. **Deployment**
+   - Smart contracts live on [Arbitrum Sepolia](https://sepolia.arbiscan.io/address/0x24253Bcb1B99a80D521c72717337BaDcfe5C2C40)
+   - Fully functional DAO governance system
+   - Optimized for L2 performance
+
+2. **AI Integration**
+   - Claude Vision for media analysis
+   - Automated proposal generation
+   - Context-aware impact assessment
+   - Real-time data processing
+
+3. **Smart Contract Features**
+   - Automated proposal creation from AI analysis
+   - Democratic voting system
+   - Treasury management
+   - Multi-signature security
+
+### Nethermind Track
+TARS pushes boundaries in AI-blockchain integration:
+
+1. **Original Innovation**
+   - First AVS system for social impact verification
+   - Novel combination of AI analysis and on-chain governance
+   - Unique approach to trustless media validation
+
+2. **End-to-End Functionality**
+   - Complete pipeline from media capture to DAO proposal
+   - Working frontend interface
+   - Integrated AI analysis system
+   - On-chain voting mechanism
+
+3. **Learning Journey**
+   - Documented development process
+   - Technical challenges and solutions
+   - Integration insights
+   - Performance optimizations
+
+4. **Creative AI Implementation**
+   - AI-powered media analysis
+   - Automated impact assessment
+   - Context-aware proposal generation
+   - Multi-agent system architecture
+
+5. **User Experience**
+   - Intuitive web interface
+   - Clear user flows
+   - Transparent verification process
+   - Accessible DAO participation
+
+## Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/narasim-teja/tars
+cd tars
 ```
-Input: Photo/video of water-related issues
-↓
-Analysis: Location + context + social media research
-↓
-Output: DAO creation + fundraising campaign + social media awareness
-```
-
-### 2. Crypto-Commerce Automation
-Example: Amazon Purchase via Crypto
-```
-Input: Photo/video of desired product
-↓
-Process: Bitrefill USDC → Gift Card → Amazon checkout
-↓
-Output: Automated product purchase
-```
-
-## Setup
-
-1. Hardware Requirements:
-   - Meta Ray-Ban Smart Glasses
-   - Internet connectivity
-   - Mobile device for glasses pairing
 
 2. Install dependencies:
 ```bash
@@ -86,73 +142,40 @@ cp .env.example .env
 
 Required API Keys:
 ```
-ANTHROPIC_API_KEY=your_key
-OPEN_WEATHER_API_KEY=your_key
-NEWS_API_KEY=your_key
-TWELVE_LABS_API_KEY=your_key
-BITREFILL_API_KEY=your_key
-EIGENLAYER_RPC_URL=http://localhost:8545
-EIGENLAYER_PRIVATE_KEY=your_key
+ANTHROPIC_API_KEY=           # For Claude Vision
+PINATA_JWT=                  # For IPFS storage
+OPEN_WEATHER_API_KEY=        # For weather data
+NEWS_API_KEY=                # For news context
+EIGENLAYER_RPC_URL=         # Your RPC endpoint
+OPERATOR_PRIVATE_KEY=        # Operator key
+SERVICE_MANAGER_ADDRESS=     # Deployed service manager
 ```
 
-## Smart Contract Deployment
-
-1. Deploy DAO & Treasury contracts:
+4. Start the services:
 ```bash
-pnpm run deploy:dao
+# Start the frontend
+pnpm run start:frontend
+
+# Start the AI agents
+pnpm run start:agent-impact
+pnpm run start:agent-photo
 ```
 
-2. Deploy verification system:
-```bash
-pnpm run deploy:avs
-```
+## Detailed Setup
 
-## Running the Agent
-
-1. Start the main service:
-```bash
-pnpm run start
-```
-
-2. Start the media processing service:
-```bash
-pnpm run start:media
-```
-
-3. Start the social analysis service:
-```bash
-pnpm run start:social
-```
+For detailed AVS setup and operation instructions, please refer to our [AVS Documentation](https://github.com/narasim-teja/tars-AVS-fork-of-Hello-World-AVS-).
 
 ## Development
-
-### Testing
-```bash
-pnpm test
-```
 
 ### Local Development
 ```bash
 pnpm run dev
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgments
 
+- EigenLayer for AVS infrastructure
+- Arbitrum for DAO deployment platform
+- Claude Vision for AI analysis
 - Meta for Ray-Ban smart glasses integration
-- EigenLayer for blockchain verification
-- Twelve Labs for video analysis
-- Bitrefill for crypto-commerce integration
-- OpenWeather for environmental data
-- Local communities for social cause identification
+- OpenWeather & NewsAPI for contextual data
