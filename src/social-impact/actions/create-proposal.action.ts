@@ -270,18 +270,35 @@ async function validateIPFSData(data: any): Promise<IPFSAnalysis> {
     throw new Error('No data received from IPFS');
   }
 
-  // Validate required fields
+  const errors: string[] = [];
+
+  // Validate required fields with detailed error messages
   if (!data.metadata?.timestamp) {
-    throw new Error('Missing required field: metadata.timestamp');
+    errors.push('Missing required field: metadata.timestamp');
   }
-  if (!data.metadata?.location?.coordinates?.lat || !data.metadata?.location?.coordinates?.lng) {
-    throw new Error('Missing required field: metadata.location.coordinates');
+
+  // Check if location coordinates exist
+  if (!data.metadata?.location?.coordinates) {
+    errors.push('Missing required field: metadata.location.coordinates');
+  } else {
+    // Validate coordinates are numbers (even if 0)
+    const { lat, lng } = data.metadata.location.coordinates;
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      errors.push('Invalid coordinates: lat and lng must be numbers');
+    }
   }
+
   if (!data.analysis?.description) {
-    throw new Error('Missing required field: analysis.description');
+    errors.push('Missing required field: analysis.description');
   }
+
   if (!data.impactAssessment?.score) {
-    throw new Error('Missing required field: impactAssessment.score');
+    errors.push('Missing required field: impactAssessment.score');
+  }
+
+  // If there are any validation errors, throw them all at once
+  if (errors.length > 0) {
+    throw new Error(`IPFS data validation failed:\n${errors.join('\n')}`);
   }
 
   return data as IPFSAnalysis;

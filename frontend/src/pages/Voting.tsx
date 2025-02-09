@@ -36,68 +36,141 @@ interface Proposal {
   status: 'active' | 'passed' | 'rejected' | 'pending';
   parsedData?: {
     location: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
     impactScore: number;
     verificationStatus: string;
-    description: string;
-    verificationDetails: string;
-    proposedAction: string;
-    evidence: {
-      mediaAnalysis: string;
-      verificationReport: string;
+    description?: string;
+    verificationDetails?: string;
+    proposedAction?: string;
+    currentConditions?: {
+      weather?: string;
+      temperature?: string;
     };
+    estimatedImpact?: string;
+    recommendedActions?: string[];
+    evidence: {
+      mediaAnalysis?: string;
+      verificationReport?: string;
+      ipfsCID?: string;
+      confidence?: number;
+    };
+    news?: {
+      title: string;
+      url: string;
+    }[];
   };
 }
 
-// Add helper function to parse proposal description
+// Update the parseProposalDescription function to better handle N/A values
 const parseProposalDescription = (descriptionText: string): Proposal['parsedData'] => {
   try {
     const lines = descriptionText.split('\n').map(line => line.trim());
     
-    // Helper function to extract content between labels
-    const extractContent = (startLabel: string, endLabels: string[]): string => {
-      const startIndex = lines.findIndex(l => l.startsWith(startLabel));
-      if (startIndex === -1) return '';
-      
-      const endIndex = lines.findIndex((l, i) => 
-        i > startIndex && endLabels.some(label => l.startsWith(label))
-      );
-      
-      if (endIndex === -1) {
-        return lines.slice(startIndex + 1).join('\n').trim();
-      }
-      return lines.slice(startIndex + 1, endIndex).join('\n').trim();
+    // Helper to check if a value is effectively N/A
+    const isValidValue = (value: string | undefined) => {
+      if (!value) return false;
+      const lowerValue = value.toLowerCase();
+      return !lowerValue.includes('n/a') && !lowerValue.includes('not available');
     };
 
-    // Extract single line values
+    // Extract location and coordinates
     const location = lines.find(l => l.startsWith('Location:'))?.split('Location:')[1]?.trim() || '';
+    const coordinatesLine = lines.find(l => l.startsWith('Coordinates:'))?.split('Coordinates:')[1]?.trim();
+    const coordinates = coordinatesLine ? {
+      lat: parseFloat(coordinatesLine.split(',')[0]),
+      lng: parseFloat(coordinatesLine.split(',')[1])
+    } : undefined;
+
+    // Extract scores and status
     const impactScore = parseInt(lines.find(l => l.startsWith('Impact Score:'))?.split('Impact Score:')[1]?.trim() || '0');
-    const verificationStatus = lines.find(l => l.startsWith('Verification Status:'))?.split('Verification Status:')[1]?.trim() || '';
+    const verificationStatus = lines.find(l => l.includes('Verification Status:'))?.split('Verification Status:')[1]?.trim() || '';
+    
+    // Extract main sections
+    const description = extractContent(lines, 'Description:', ['Current Conditions:', 'Estimated Impact:', 'Recommended Actions:']);
+    const verificationDetails = extractContent(lines, 'Verification Details:', ['Evidence:', 'Description:', 'Current Conditions:']);
+    const proposedAction = extractContent(lines, 'Proposed Action:', ['Evidence:', 'Description:', 'Verification Details:']);
+    
+    // Extract current conditions
+    const weatherLine = lines.find(l => l.includes('Weather:'))?.split('Weather:')[1]?.trim();
+    const temperatureLine = lines.find(l => l.includes('Temperature:'))?.split('Temperature:')[1]?.trim();
+    const currentConditions = (weatherLine || temperatureLine) ? {
+      weather: isValidValue(weatherLine?.split('(')[0]?.trim()) ? weatherLine?.split('(')[0]?.trim() : undefined,
+      temperature: isValidValue(temperatureLine || weatherLine?.match(/\((.*?)\)/)?.[1]) ? 
+        (temperatureLine || weatherLine?.match(/\((.*?)\)/)?.[1]) : undefined
+    } : undefined;
 
-    // Extract multi-line content
-    const description = extractContent('Description:', ['Verification Details:', 'Proposed Action:', 'Evidence:']);
-    const verificationDetails = extractContent('Verification Details:', ['Proposed Action:', 'Evidence:', 'Description:']);
-    const proposedAction = extractContent('Proposed Action:', ['Evidence:', 'Description:', 'Verification Details:']);
+    // Extract estimated impact
+    const estimatedImpact = extractContent(lines, 'Estimated Impact:', ['Recommended Actions:', 'Evidence:']);
 
-    // Extract evidence URLs
-    const mediaAnalysis = lines.find(l => l.includes('Media Analysis:'))?.split('Media Analysis:')[1]?.trim() || '';
-    const verificationReport = lines.find(l => l.includes('Verification Report:'))?.split('Verification Report:')[1]?.trim() || '';
+    // Extract recommended actions
+    const actionsStart = lines.findIndex(l => l.startsWith('Recommended Actions:'));
+    const actionsEnd = lines.findIndex((l, i) => i > actionsStart && (l.startsWith('Evidence:') || l.startsWith('Verification Details:')));
+    const recommendedActions = actionsStart !== -1 ? 
+      lines.slice(actionsStart + 1, actionsEnd !== -1 ? actionsEnd : undefined)
+        .filter(l => l.startsWith('-'))
+        .map(l => l.substring(1).trim())
+        .filter(isValidValue)
+      : undefined;
+
+    // Extract evidence and image
+    const mediaAnalysis = lines.find(l => l.includes('Full Analysis:'))?.split('Full Analysis:')[1]?.trim() || '';
+    const confidence = parseInt(lines.find(l => l.includes('Confidence Score:'))?.split('Confidence Score:')[1]?.replace('%', '').trim() || '0');
+    const ipfsCID = mediaAnalysis.split('/').pop();
+
+    // Extract news articles
+    const newsStart = lines.findIndex(l => l.includes('Recent Related News:'));
+    const newsEnd = lines.findIndex((l, i) => i > newsStart && (l.startsWith('Estimated Impact:') || l.startsWith('Recommended Actions:')));
+    const news = newsStart !== -1 ?
+      lines.slice(newsStart + 1, newsEnd !== -1 ? newsEnd : undefined)
+        .filter(l => l.startsWith('-'))
+        .map(l => {
+          const title = l.substring(1).trim();
+          return isValidValue(title) ? { title, url: '' } : null;
+        })
+        .filter((item): item is { title: string; url: string; } => item !== null)
+      : undefined;
 
     return {
       location,
+      coordinates,
       impactScore,
       verificationStatus,
-      description,
-      verificationDetails,
-      proposedAction,
+      description: isValidValue(description) ? description : undefined,
+      verificationDetails: isValidValue(verificationDetails) ? verificationDetails : undefined,
+      proposedAction: isValidValue(proposedAction) ? proposedAction : undefined,
+      currentConditions: currentConditions?.weather || currentConditions?.temperature ? currentConditions : undefined,
+      estimatedImpact: isValidValue(estimatedImpact) ? estimatedImpact : undefined,
+      recommendedActions: recommendedActions?.length ? recommendedActions : undefined,
       evidence: {
-        mediaAnalysis,
-        verificationReport
-      }
+        mediaAnalysis: isValidValue(mediaAnalysis) ? mediaAnalysis : undefined,
+        verificationReport: '',
+        ipfsCID,
+        confidence: confidence || undefined
+      },
+      news: news?.length ? news : undefined
     };
   } catch (error) {
     console.error('Error parsing proposal description:', error);
     return undefined;
   }
+};
+
+// Helper function to extract content between sections
+const extractContent = (lines: string[], startLabel: string, endLabels: string[]): string => {
+  const startIndex = lines.findIndex(l => l.startsWith(startLabel));
+  if (startIndex === -1) return '';
+  
+  const endIndex = lines.findIndex((l, i) => 
+    i > startIndex && endLabels.some(label => l.startsWith(label))
+  );
+  
+  if (endIndex === -1) {
+    return lines.slice(startIndex + 1).join('\n').trim();
+  }
+  return lines.slice(startIndex + 1, endIndex).join('\n').trim();
 };
 
 export default function Voting() {
@@ -406,54 +479,144 @@ export default function Voting() {
                           {proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        Impact Score: {proposal.parsedData?.impactScore} | Status: {proposal.parsedData?.verificationStatus}
+                      <div className="text-sm text-gray-500 flex items-center gap-4">
+                        <span>Impact Score: {proposal.parsedData?.impactScore}</span>
+                        <span>•</span>
+                        <span>{proposal.parsedData?.verificationStatus}</span>
+                        {proposal.parsedData?.coordinates && (
+                          <>
+                            <span>•</span>
+                            <a
+                              href={`https://www.google.com/maps?q=${proposal.parsedData.coordinates.lat},${proposal.parsedData.coordinates.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 hover:text-indigo-500"
+                            >
+                              View on Map
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 space-y-4">
-                    <div className="text-sm text-gray-700">
-                      <p className="font-medium">Description:</p>
-                      <p>{proposal.parsedData?.description}</p>
-                    </div>
-                    
-                    <div className="text-sm text-gray-700">
-                      <p className="font-medium">Verification Details:</p>
-                      <p>{proposal.parsedData?.verificationDetails}</p>
+                  <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-6">
+                      {/* Description */}
+                      {proposal.parsedData?.description && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Description</h3>
+                          <p className="mt-2 text-sm text-gray-600">{proposal.parsedData.description}</p>
+                        </div>
+                      )}
+
+                      {/* Current Conditions - Only show if there's valid data */}
+                      {proposal.parsedData?.currentConditions && 
+                       (proposal.parsedData.currentConditions.weather || proposal.parsedData.currentConditions.temperature) && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Current Conditions</h3>
+                          <div className="mt-2 text-sm text-gray-600">
+                            {proposal.parsedData.currentConditions.weather && (
+                              <p>Weather: {proposal.parsedData.currentConditions.weather}</p>
+                            )}
+                            {proposal.parsedData.currentConditions.temperature && (
+                              <p>Temperature: {proposal.parsedData.currentConditions.temperature}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Related News - Only show if there are valid news items */}
+                      {proposal.parsedData?.news && proposal.parsedData.news.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Related News</h3>
+                          <ul className="mt-2 space-y-2">
+                            {proposal.parsedData.news.map((article, index) => (
+                              <li key={index} className="text-sm text-gray-600">
+                                • {article.title}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="text-sm text-gray-700">
-                      <p className="font-medium">Proposed Action:</p>
-                      <p>{proposal.parsedData?.proposedAction}</p>
-                    </div>
-
-                    <div className="text-sm text-gray-700">
-                      <p className="font-medium">Evidence:</p>
-                      <div className="ml-4">
-                        <p>Media Analysis: <a href={proposal.parsedData?.evidence.mediaAnalysis} className="text-indigo-600 hover:text-indigo-500">{proposal.parsedData?.evidence.mediaAnalysis}</a></p>
-                        <p>Verification Report: <a href={proposal.parsedData?.evidence.verificationReport} className="text-indigo-600 hover:text-indigo-500">{proposal.parsedData?.evidence.verificationReport}</a></p>
+                    {/* Right Column */}
+                    <div className="space-y-6">
+                      {/* Evidence and Image */}
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">Evidence</h3>
+                        <div className="mt-2 space-y-4">
+                          {proposal.parsedData?.evidence.ipfsCID && (
+                            <div className="space-y-4">
+                              {/* Image Display */}
+                              <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                <img
+                                  src={`https://gateway.pinata.cloud/ipfs/${proposal.parsedData.evidence.ipfsCID}`}
+                                  alt="Proposal evidence"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Hide the image container if loading fails
+                                    (e.target as HTMLElement).parentElement!.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                              
+                              {/* IPFS Link */}
+                              <a
+                                href={`https://gateway.pinata.cloud/ipfs/${proposal.parsedData.evidence.ipfsCID}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-500"
+                              >
+                                <svg className="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                  <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                </svg>
+                                View Full Analysis on IPFS
+                              </a>
+                            </div>
+                          )}
+                          
+                          {proposal.parsedData?.evidence.confidence && (
+                            <p className="text-sm text-gray-600">
+                              Confidence Score: {proposal.parsedData.evidence.confidence}%
+                            </p>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Recommended Actions - Only show if there are valid actions */}
+                      {proposal.parsedData?.recommendedActions && proposal.parsedData.recommendedActions.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Recommended Actions</h3>
+                          <ul className="mt-2 space-y-2">
+                            {proposal.parsedData.recommendedActions.map((action, index) => (
+                              <li key={index} className="text-sm text-gray-600">
+                                • {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Verification Details - Only show if there are valid details */}
+                      {proposal.parsedData?.verificationDetails && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-900">Verification Details</h3>
+                          <p className="mt-2 text-sm text-gray-600">{proposal.parsedData.verificationDetails}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div>
-                      <span className="font-medium">For:</span> {proposal.forVotes}
-                    </div>
-                    <div>
-                      <span className="font-medium">Against:</span> {proposal.againstVotes}
-                    </div>
-                    <div>
-                      <span className="font-medium">Deadline:</span> {new Date(proposal.deadline).toLocaleDateString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Your Vote:</span> {proposal.hasVoted ? 'Voted' : 'Not voted'}
-                    </div>
-                  </div>
-                  
                   {/* Voting Progress */}
                   <div className="mt-6">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>For: {proposal.forVotes}</span>
+                      <span>Against: {proposal.againstVotes}</span>
+                    </div>
                     <div className="mt-2 relative pt-1">
                       <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
                         <div
@@ -461,6 +624,10 @@ export default function Voting() {
                           className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"
                         />
                       </div>
+                    </div>
+                    <div className="mt-2 flex justify-between text-sm text-gray-600">
+                      <span>Deadline: {new Date(proposal.deadline).toLocaleDateString()}</span>
+                      <span>Your Vote: {proposal.hasVoted ? 'Voted' : 'Not voted'}</span>
                     </div>
                   </div>
 
