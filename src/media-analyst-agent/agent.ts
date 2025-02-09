@@ -44,11 +44,14 @@ export class MediaAnalystAgent extends AgentRuntime {
         new NewsProvider(),
         new ImageAnalysisProvider(),
       ],
-      actions: [new AnalyzePhotoAction()],
+      actions: [],
       services: [],
       managers: [],
       cacheManager: config.cacheManager
     });
+
+    // Add the analyze photo action after super() is called
+    this.actions.push(new AnalyzePhotoAction(this));
   }
 
   async initialize(): Promise<void> {

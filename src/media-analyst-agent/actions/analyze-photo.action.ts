@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import { ethers } from 'ethers';
 import heicConvert from 'heic-convert';
 import sharp from 'sharp';
+import { ImageAnalysisProvider } from '../providers/image-analysis.provider.js';
+import { formatAnalysisForIPFS } from '../utils/format-analysis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,33 +18,54 @@ const SERVICE_MANAGER_ABI = [
   'event NewTaskCreated(uint32 indexed taskIndex, tuple(bytes32 imageHash, bytes32 metadataHash, uint32 taskCreatedBlock, bytes deviceSignature) task)'
 ];
 
-export interface PhotoData {
+interface PhotoData {
   buffer: Buffer;
-  metadata?: any;
+  mimeType: string;
+  metadata?: {
+    exif?: any;
+    gps?: {
+      latitude?: number;
+      longitude?: number;
+    };
+    weather?: any;
+    latitude?: number;
+    longitude?: number;
+    DateTimeOriginal?: Date;
+    Make?: string;
+    Model?: string;
+    ImageWidth?: number;
+    ImageHeight?: number;
+    FNumber?: number;
+    ApertureValue?: number;
+    FocalLength?: number;
+    ISO?: number;
+    ExposureTime?: number;
+    Flash?: boolean;
+  };
+  hash?: string;
+  taskId?: string;
   timestamp?: Date;
-  location?: { lat: number; lng: number };
+  location?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface AnalysisResult {
-  analysis: string;
-  authenticity: boolean;
-  contextualData: {
-    weather?: any;
-    news?: any;
-    location?: {
-      coordinates: string;
-      address?: string;
-      city?: string;
-      state?: string;
-      country?: string;
-      landmarks?: string[];
+  success: boolean;
+  data: {
+    imageAnalysis: any;
+    metadata: {
+      exif?: any;
+      gps?: {
+        latitude?: number;
+        longitude?: number;
+      };
+      weather?: any;
+      news?: any;
     };
   };
-  avsVerification?: {
-    taskId: string;
-    success: boolean;
-    message: string;
-  };
+  outputPath?: string;
 }
 
 export class AnalyzePhotoAction implements Action {
@@ -54,8 +77,11 @@ export class AnalyzePhotoAction implements Action {
   private provider: ethers.JsonRpcProvider;
   private wallet: ethers.Wallet;
   private serviceManager: ethers.Contract;
+  private runtime: IAgentRuntime;
 
-  constructor() {
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+
     const avsConfig = {
       rpcUrl: process.env.EIGENLAYER_RPC_URL || 'http://localhost:8545',
       privateKey: process.env.OPERATOR_PRIVATE_KEY || '',
@@ -83,12 +109,13 @@ export class AnalyzePhotoAction implements Action {
     }
   }
 
-  private async convertHeicToBuffer(heicBuffer: Buffer): Promise<Buffer> {
+  private async convertHeicToBuffer(buffer: Buffer): Promise<Buffer> {
     try {
+      elizaLogger.info('Converting HEIC to JPEG...');
       const jpegBuffer = await heicConvert({
-        buffer: heicBuffer,
+        buffer: buffer,
         format: 'JPEG',
-        quality: 1
+        quality: 0.9
       });
 
       // Resize the converted image if it's too large
@@ -103,12 +130,19 @@ export class AnalyzePhotoAction implements Action {
         while (resizedBuffer.length > MAX_SIZE && quality > 30) {
           quality -= 10;
           resizedBuffer = await sharp(jpegBuffer)
-            .resize(2000, 2000, { fit: 'inside' })
             .jpeg({ quality })
+            .toBuffer();
+          elizaLogger.info(`Resizing with quality ${quality}%, size: ${resizedBuffer.length / 1024 / 1024}MB`);
+        }
+
+        if (resizedBuffer.length > MAX_SIZE) {
+          elizaLogger.info('Still too large, reducing dimensions...');
+          resizedBuffer = await sharp(jpegBuffer)
+            .resize(1600, 1600, { fit: 'inside' })
+            .jpeg({ quality: Math.max(quality, 30) })
             .toBuffer();
         }
 
-        elizaLogger.info(`Image resized successfully. New size: ${resizedBuffer.length} bytes`);
         return resizedBuffer;
       }
 
@@ -259,6 +293,7 @@ export class AnalyzePhotoAction implements Action {
           elizaLogger.info('Performing photo analysis...');
           const result = await this.analyzePhoto(runtime, {
             buffer: processedBuffer,
+            mimeType: 'image/jpeg',
             metadata: originalMetadata,
             timestamp: originalMetadata?.DateTimeOriginal || new Date(),
             location: originalMetadata?.latitude && originalMetadata?.longitude ? {
@@ -320,6 +355,7 @@ export class AnalyzePhotoAction implements Action {
     elizaLogger.info('Performing photo analysis...');
     const result = await this.analyzePhoto(runtime, {
       buffer: photoData.buffer,
+      mimeType: 'image/jpeg',
       metadata,
       timestamp: metadata?.DateTimeOriginal || photoData.timestamp || new Date(),
       location: metadata?.latitude && metadata?.longitude ? {
@@ -365,12 +401,18 @@ export class AnalyzePhotoAction implements Action {
 
       // Extract GPS coordinates from metadata
       let coordinates = null;
-      if (photoData.metadata) {
-        if (photoData.metadata.latitude && photoData.metadata.longitude) {
-          coordinates = { lat: photoData.metadata.latitude, lng: photoData.metadata.longitude };
-        } else if (photoData.metadata.GPSLatitude && photoData.metadata.GPSLongitude) {
-          coordinates = { lat: photoData.metadata.GPSLatitude, lng: photoData.metadata.GPSLongitude };
-        }
+      if (photoData.metadata?.latitude && photoData.metadata?.longitude) {
+        coordinates = {
+          lat: photoData.metadata.latitude,
+          lng: photoData.metadata.longitude
+        };
+        elizaLogger.info('Found GPS coordinates in photo metadata:', coordinates);
+      } else if (photoData.metadata?.gps?.latitude && photoData.metadata?.gps?.longitude) {
+        coordinates = {
+          lat: photoData.metadata.gps.latitude,
+          lng: photoData.metadata.gps.longitude
+        };
+        elizaLogger.info('Found GPS coordinates in photo metadata (gps):', coordinates);
       }
 
       // Get image analysis first
@@ -401,7 +443,7 @@ export class AnalyzePhotoAction implements Action {
       let weatherData = null;
       let newsData = null;
       if (coordinates) {
-        elizaLogger.info('Found GPS coordinates in photo:', coordinates);
+        elizaLogger.info('Using coordinates for providers:', coordinates);
         const locationProvider = runtime.providers.find(p => (p as any).name === 'LOCATION');
         const weatherProvider = runtime.providers.find(p => (p as any).name === 'WEATHER');
         const newsProvider = runtime.providers.find(p => (p as any).name === 'NEWS');
@@ -421,55 +463,93 @@ export class AnalyzePhotoAction implements Action {
         if (locationProvider) {
           elizaLogger.info('Getting location details...');
           locationDetails = await locationProvider.get(runtime, memoryWithLocation);
+          elizaLogger.info('Location details:', locationDetails);
         }
         
         if (weatherProvider) {
           elizaLogger.info('Getting weather data...');
           weatherData = await weatherProvider.get(runtime, memoryWithLocation);
+          elizaLogger.info('Weather data:', weatherData);
         }
         
         if (newsProvider) {
           elizaLogger.info('Getting news data...');
           newsData = await newsProvider.get(runtime, memoryWithLocation);
+          elizaLogger.info('News data:', newsData);
         }
       } else {
         elizaLogger.info('No GPS coordinates found in photo metadata');
       }
 
-      // Comprehensive image analysis using all available metadata
-      const analysis = {
-        timestamp: photoData.timestamp || photoData.metadata?.DateTimeOriginal || new Date(),
-        camera: photoData.metadata?.Make && photoData.metadata?.Model 
-          ? `${photoData.metadata.Make} ${photoData.metadata.Model}`
-          : 'Unknown',
-        resolution: photoData.metadata?.ImageWidth && photoData.metadata?.ImageHeight
-          ? `${photoData.metadata.ImageWidth}x${photoData.metadata.ImageHeight}`
-          : 'Unknown',
-        aperture: photoData.metadata?.FNumber || photoData.metadata?.ApertureValue,
-        focalLength: photoData.metadata?.FocalLength,
-        iso: photoData.metadata?.ISO,
-        exposureTime: photoData.metadata?.ExposureTime,
-        flash: photoData.metadata?.Flash,
-        location: coordinates,
-        hash,
-        imageAnalysis: imageAnalysis || null
-      };
-
-      return {
-        analysis: JSON.stringify(analysis),
-        authenticity: true, // This is verified through the AVS system
-        contextualData: {
-          location: coordinates ? {
-            coordinates: `${coordinates.lat}, ${coordinates.lng}`,
-            address: locationDetails?.address,
-            city: locationDetails?.city,
-            state: locationDetails?.state,
-            country: locationDetails?.country,
-            landmarks: locationDetails?.landmarks
-          } : undefined,
+      // Format the analysis data for IPFS
+      const formattedData = formatAnalysisForIPFS(
+        {
+          timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp || new Date(),
+          camera: photoData.metadata?.Make && photoData.metadata?.Model 
+            ? `${photoData.metadata.Make} ${photoData.metadata.Model}`
+            : 'Unknown',
+          resolution: photoData.metadata?.ImageWidth && photoData.metadata?.ImageHeight
+            ? `${photoData.metadata.ImageWidth}x${photoData.metadata.ImageHeight}`
+            : 'Unknown',
+          aperture: photoData.metadata?.FNumber || photoData.metadata?.ApertureValue,
+          focalLength: photoData.metadata?.FocalLength,
+          iso: photoData.metadata?.ISO,
+          exposureTime: photoData.metadata?.ExposureTime,
+          flash: photoData.metadata?.Flash,
+          location: coordinates,
+          hash,
+          imageAnalysis
+        },
+        photoData.metadata,
+        {
+          location: locationDetails,
           weather: weatherData,
           news: newsData
+        },
+        {
+          success: true,
+          taskId: photoData.taskId
         }
+      );
+
+      // Create output directory if it doesn't exist
+      const outputDir = path.join(process.cwd(), 'src', 'output');
+      await fs.mkdir(outputDir, { recursive: true });
+
+      // Save formatted data to JSON file
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const outputPath = path.join(outputDir, `analysis-${timestamp}.json`);
+      await fs.writeFile(outputPath, JSON.stringify(formattedData, null, 2));
+      elizaLogger.info(`Analysis data saved to ${outputPath}`);
+
+      return {
+        success: true,
+        data: {
+          imageAnalysis: {
+            timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp || new Date(),
+            camera: photoData.metadata?.Make && photoData.metadata?.Model 
+              ? `${photoData.metadata.Make} ${photoData.metadata.Model}`
+              : 'Unknown',
+            resolution: photoData.metadata?.ImageWidth && photoData.metadata?.ImageHeight
+              ? `${photoData.metadata.ImageWidth}x${photoData.metadata.ImageHeight}`
+              : 'Unknown',
+            aperture: photoData.metadata?.FNumber || photoData.metadata?.ApertureValue,
+            focalLength: photoData.metadata?.FocalLength,
+            iso: photoData.metadata?.ISO,
+            exposureTime: photoData.metadata?.ExposureTime,
+            flash: photoData.metadata?.Flash,
+            location: coordinates,
+            hash,
+            imageAnalysis
+          },
+          metadata: {
+            exif: photoData.metadata?.exif,
+            gps: photoData.metadata?.gps,
+            weather: weatherData,
+            news: newsData
+          }
+        },
+        outputPath
       };
     } catch (error) {
       elizaLogger.error('Error analyzing photo:', error);
@@ -477,3 +557,5 @@ export class AnalyzePhotoAction implements Action {
     }
   }
 } 
+
+
