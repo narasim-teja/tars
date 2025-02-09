@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 8h100v4H10z" fill="#6366F1"/>
+  <path d="M20 16h80v4H20z" fill="#818CF8"/>
+  <path d="M30 24h60v4H30z" fill="#A5B4FC"/>
+  <text x="60" y="35" text-anchor="middle" font-family="system-ui" font-size="14" fill="white">TARS</text>
+</svg> 
