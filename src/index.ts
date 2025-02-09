@@ -21,6 +21,7 @@ import {
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
 import { MediaAnalystAgent } from './media-analyst-agent/agent.js';
+import { SocialImpactAgent } from './social-impact/agent.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +47,7 @@ export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
 };
 
 let mediaAnalystAgent: MediaAnalystAgent | undefined;
+let socialImpactAgent: SocialImpactAgent | undefined;
 
 export function createAgent(
   character: Character,
@@ -59,7 +61,7 @@ export function createAgent(
     character.name,
   );
 
-  if (character.name === 'MediaAnalystAgent') {
+  if (character.name === 'PhotoAnalyst') {
     mediaAnalystAgent = new MediaAnalystAgent({
       character,
       databaseAdapter: db,
@@ -67,6 +69,16 @@ export function createAgent(
       cacheManager: cache
     });
     return mediaAnalystAgent;
+  }
+
+  if (character.name === 'ImpactAnalyst') {
+    socialImpactAgent = new SocialImpactAgent({
+      character,
+      databaseAdapter: db,
+      token,
+      cacheManager: cache
+    });
+    return socialImpactAgent;
   }
 
   return new AgentRuntime({
@@ -102,10 +114,28 @@ async function startAgent(character: Character, directClient: DirectClient) {
     const cache = initializeDbCache(character, db);
     const runtime = createAgent(character, db, cache, token);
 
-    // Initialize data collection if this is the data ingestion agent
+    // Initialize data collection if this is the media analyst agent
     if (runtime instanceof MediaAnalystAgent) {
       await runtime.initialize();
       await runtime.startDataCollection();
+
+      // Add cleanup handlers
+      process.on('SIGINT', async () => {
+        elizaLogger.info('Shutting down...');
+        await runtime.cleanup();
+        process.exit(0);
+      });
+
+      process.on('SIGTERM', async () => {
+        elizaLogger.info('Shutting down...');
+        await runtime.cleanup();
+        process.exit(0);
+      });
+    }
+
+    // Initialize data collection if this is the social impact agent
+    if (runtime instanceof SocialImpactAgent) {
+      await runtime.initialize();
 
       // Add cleanup handlers
       process.on('SIGINT', async () => {
