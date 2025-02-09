@@ -8,6 +8,7 @@ import heicConvert from 'heic-convert';
 import sharp from 'sharp';
 import { ImageAnalysisProvider } from '../providers/image-analysis.provider.js';
 import { formatAnalysisForIPFS } from '../utils/format-analysis.js';
+import { PinataService } from '../services/pinata.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -376,6 +377,9 @@ export class AnalyzePhotoAction implements Action {
 
   private async analyzePhoto(runtime: IAgentRuntime, photoData: PhotoData): Promise<AnalysisResult> {
     try {
+      // Initialize Pinata service
+      const pinataService = new PinataService();
+
       // Generate hash for authenticity
       const hash = ethers.keccak256(new Uint8Array(photoData.buffer));
 
@@ -522,25 +526,38 @@ export class AnalyzePhotoAction implements Action {
       await fs.writeFile(outputPath, JSON.stringify(formattedData, null, 2));
       elizaLogger.info(`Analysis data saved to ${outputPath}`);
 
+      // Upload to IPFS using Pinata
+      const locationString = [
+        locationDetails?.city,
+        locationDetails?.state,
+        locationDetails?.country
+      ].filter(Boolean).join(', ');
+
+      const ipfsResult = await pinataService.pinAnalysisWithImage(
+        formattedData,
+        processedBuffer,
+        {
+          timestamp,
+          location: locationString,
+          device: `${photoData.metadata?.Make || ''} ${photoData.metadata?.Model || ''}`.trim() || 'Unknown',
+          photographer: 'TARS User' // You can make this configurable if needed
+        }
+      );
+
+      elizaLogger.info('Content uploaded to IPFS:', ipfsResult);
+
+      // Add IPFS data to the result
       return {
         success: true,
         data: {
           imageAnalysis: {
-            timestamp: photoData.metadata?.DateTimeOriginal || photoData.timestamp || new Date(),
-            camera: photoData.metadata?.Make && photoData.metadata?.Model 
-              ? `${photoData.metadata.Make} ${photoData.metadata.Model}`
-              : 'Unknown',
-            resolution: photoData.metadata?.ImageWidth && photoData.metadata?.ImageHeight
-              ? `${photoData.metadata.ImageWidth}x${photoData.metadata.ImageHeight}`
-              : 'Unknown',
-            aperture: photoData.metadata?.FNumber || photoData.metadata?.ApertureValue,
-            focalLength: photoData.metadata?.FocalLength,
-            iso: photoData.metadata?.ISO,
-            exposureTime: photoData.metadata?.ExposureTime,
-            flash: photoData.metadata?.Flash,
-            location: coordinates,
-            hash,
-            imageAnalysis
+            ...formattedData,
+            ipfs: {
+              imageUrl: ipfsResult.urls.image,
+              analysisUrl: ipfsResult.urls.analysis,
+              imageHash: ipfsResult.imageHash,
+              analysisHash: ipfsResult.analysisHash
+            }
           },
           metadata: {
             exif: photoData.metadata?.exif,
