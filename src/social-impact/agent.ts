@@ -1,11 +1,20 @@
-import { AgentRuntime, elizaLogger, type Character, stringToUuid } from '@elizaos/core';
-import { ImpactEvaluator } from './evaluators/impact.evaluator';
+import { AgentRuntime, elizaLogger, type Character, stringToUuid, Memory } from '@elizaos/core';
+import { ImpactEvaluator } from './evaluators/impact.evaluator.js';
 import { ethers } from 'ethers';
 import { MediaAnalysis, VerificationResult, ImpactAssessment, AgentResponse } from './types';
+import { deployDAOAction } from './actions/deploy-dao.action.js';
+
+interface DeployDAOResult {
+  success: boolean;
+  contractAddress?: string;
+  message?: string;
+  error?: string;
+}
 
 export class SocialImpactAgent extends AgentRuntime {
   private readonly LOCAL_USER_ID = stringToUuid('local-user');
   private readonly LOCAL_ROOM_ID = stringToUuid('local-impact-room');
+  private daoContractAddress: string | null = null;
 
   constructor(config: {
     character: Character;
@@ -20,7 +29,7 @@ export class SocialImpactAgent extends AgentRuntime {
         new ImpactEvaluator(),
       ],
       providers: [],
-      actions: [],
+      actions: [deployDAOAction],
       services: [],
       managers: [],
       cacheManager: config.cacheManager
@@ -30,6 +39,51 @@ export class SocialImpactAgent extends AgentRuntime {
   async initialize(): Promise<void> {
     await super.initialize();
     elizaLogger.info('Social Impact Agent initialized');
+  }
+
+  async handleMessage(message: Memory): Promise<any> {
+    const content = message.content as any;
+    const text = content?.text?.toLowerCase() || '';
+
+    // Check if the message is related to DAO deployment
+    if (text.includes('deploy') || text.includes('create dao') || text.includes('setup dao')) {
+      const deployAction = this.actions.find(action => action.name === 'DEPLOY_DAO');
+      if (deployAction) {
+        elizaLogger.info(`Initiating TarsDAO smart contract deployment. The contract will be configured with:
+- Quorum threshold: 51%
+- Voting period: 7 days
+- Impact metric tracking enabled
+- Community feedback module activated
+
+Deploying contract to local test network now...`);
+
+        elizaLogger.info('Starting deployment process...');
+        const result = await deployAction.handler(this, message) as DeployDAOResult;
+        
+        if (result.success && result.contractAddress) {
+          this.daoContractAddress = result.contractAddress;
+          return {
+            text: `✅ Deployment complete!\n\nContract Address: ${result.contractAddress}\n\nYou can now interact with the DAO contract at the deployed address. Would you like to:\n1. Configure governance parameters\n2. Set up impact tracking metrics\n3. Initialize community feedback mechanisms`,
+            type: 'text'
+          };
+        } else {
+          return {
+            text: result.error || 'Failed to deploy DAO contract. Please ensure the Hardhat node is running and try again.',
+            type: 'text'
+          };
+        }
+      }
+    }
+
+    // If not a DAO deployment request, proceed with impact assessment
+    if (content?.mediaAnalysis || content?.verificationResult) {
+      return this.assessImpact({
+        mediaAnalysis: content.mediaAnalysis,
+        verificationResult: content.verificationResult
+      });
+    }
+
+    return null;
   }
 
   async assessImpact(data: {
