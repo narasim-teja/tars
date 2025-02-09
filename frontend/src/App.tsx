@@ -1,9 +1,10 @@
 import Layout from './components/Layout'
 import {
   DynamicContextProvider,
+  DynamicWidget,
 } from "@dynamic-labs/sdk-react-core";
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
-import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+
 function App() {
   return (
     <DynamicContextProvider
@@ -13,6 +14,10 @@ function App() {
       }}
     >
       <Layout>
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-end gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm">
+          <DynamicWidget />
+        </div>
+
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">TARS Dashboard</h1>
@@ -45,7 +50,6 @@ function App() {
           </div>
         </div>
       </Layout>
-      <DynamicWidget />
     </DynamicContextProvider>
   )
 }
