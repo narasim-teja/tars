@@ -20,6 +20,9 @@ importers:
       '@types/react-router-dom':
         specifier: ^5.3.3
         version: 5.3.3
+      ethers:
+        specifier: ^6.13.5
+        version: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       react:
         specifier: ^19.0.0
         version: 19.0.0
